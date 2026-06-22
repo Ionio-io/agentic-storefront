@@ -36,7 +36,7 @@ export default function HomePage() {
       .then((r) => r.json())
       .then((data) => { if (data?.user) setIsLoggedIn(true); })
       .catch(() => {});
-    fetch("/api/brand")
+    fetch("/api/brand", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (d?.name) setBrandName(d.name);
@@ -158,7 +158,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 md:px-16 py-6 border-b border-border/50">
         <span className="font-display text-xl font-600 tracking-widest text-dark uppercase">{brandName}</span>
-        <button onClick={() => openModal()} className="font-sans text-xs tracking-[0.15em] uppercase text-taupe hover:text-dark transition-colors">
+        <button onClick={() => { setPendingQuery(query.trim()); setStep("role"); }} className="font-sans text-xs tracking-[0.15em] uppercase text-taupe hover:text-dark transition-colors">
           Open Storefront →
         </button>
       </nav>

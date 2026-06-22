@@ -18,18 +18,28 @@ export default function AgentPage() {
   const set = (key: keyof BrandConfig, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const [errorMsg, setErrorMsg] = useState("");
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setStatus("saving");
+    setErrorMsg("");
     try {
       const res = await fetch("/api/brand", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      setStatus(res.ok ? "saved" : "error");
+      if (res.ok) {
+        setStatus("saved");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data.error ?? `Error ${res.status}`);
+        setStatus("error");
+      }
       setTimeout(() => setStatus("idle"), 2500);
-    } catch {
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Network error");
       setStatus("error");
     }
   }
@@ -131,7 +141,7 @@ RESPONSE RULES:
             {status === "saving" ? "Saving…" : status === "saved" ? "Saved ✓" : "Save Changes"}
           </button>
           {status === "error" && (
-            <p className="font-mono text-xs text-red-600 mt-2">Failed to save. Please try again.</p>
+            <p className="font-mono text-xs text-red-600 mt-2">{errorMsg || "Failed to save. Please try again."}</p>
           )}
         </div>
       </form>

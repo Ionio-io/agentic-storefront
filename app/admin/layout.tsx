@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [brandName, setBrandName] = useState("AI Storefront");
 
   useEffect(() => {
-    fetch("/api/brand")
+    fetch("/api/brand", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => { if (d?.name) setBrandName(d.name); })
       .catch(() => {});

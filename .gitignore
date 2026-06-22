@@ -41,3 +41,6 @@ Thumbs.db
 .chat-backup/
 .dev-check.log
 *.log
+
+# Local brand config override (auto-written by admin save when no MongoDB)
+data/brand-override.json
