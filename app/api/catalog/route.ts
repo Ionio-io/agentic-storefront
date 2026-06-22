@@ -1,0 +1,201 @@
+import { NextRequest, NextResponse } from "next/server";
+import { DEMO_PRODUCTS } from "@/data/products";
+import { Product } from "@/types";
+
+export const dynamic = "force-dynamic";
+
+// ─── GET /api/catalog?page=1&limit=20&gender=all&type= ───────────────────────
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page   = Math.max(1, parseInt(searchParams.get("page")   ?? "1"));
+  const limit  = Math.min(50, parseInt(searchParams.get("limit") ?? "20"));
+  const gender = searchParams.get("gender") ?? "all";
+  const type   = searchParams.get("type")?.toLowerCase() ?? "";
+
+  // Try MongoDB first (uploaded catalog), fall back to demo products
+  if (process.env.MONGODB_URI) {
+    try {
+      const { connectDB, ProductModel } = await import("@/lib/mongodb");
+      await connectDB();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const filter: Record<string, any> = {};
+      if (gender !== "all") filter.gender = gender;
+      if (type) filter.product_type = { $regex: type, $options: "i" };
+
+      const [total, products] = await Promise.all([
+        ProductModel.countDocuments(filter),
+        ProductModel.find(filter)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+      ]);
+
+      if (total > 0) {
+        return NextResponse.json({
+          products,
+          total,
+          page,
+          pages: Math.ceil(total / limit),
+        });
+      }
+    } catch {
+      // Fall through to static data
+    }
+  }
+
+  // Static fallback
+  let products = DEMO_PRODUCTS as Product[];
+  if (gender !== "all") products = products.filter((p) => p.gender === gender);
+  if (type) products = products.filter((p) => p.product_type.toLowerCase().includes(type));
+
+  const total = products.length;
+  const start = (page - 1) * limit;
+  const items = products.slice(start, start + limit);
+
+  return NextResponse.json({
+    products: items,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
+}
+
+// ─── POST /api/catalog — upload Shopify JSON or our product format ────────────
+
+interface ShopifyProduct {
+  id?: string | number;
+  handle?: string;
+  title?: string;
+  body_html?: string;
+  product_type?: string;
+  vendor?: string;
+  tags?: string | string[];
+  variants?: Array<{ price?: string; option1?: string }>;
+  images?: Array<{ src?: string }>;
+}
+
+const VTON_MAP: Record<string, "upper" | "lower" | "one-pieces"> = {
+  "t-shirts": "upper", "polo shirts": "upper", "casual shirts": "upper",
+  "formal shirts": "upper", "jackets": "upper", "ethnic tops": "upper",
+  "tops": "upper", "kurtas": "upper", "sweatshirts": "upper",
+  "dresses": "one-pieces", "ethnic dresses": "one-pieces", "ethnic suits": "one-pieces",
+  "jumpsuits": "one-pieces", "co-ord sets": "one-pieces",
+  "jeans": "lower", "formal trousers": "lower", "casual trousers": "lower",
+  "joggers": "lower", "shorts": "lower", "skirts": "lower",
+  "leggings": "lower", "palazzos": "lower",
+};
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function inferVtonCategory(productType: string): "upper" | "lower" | "one-pieces" {
+  const key = productType.toLowerCase();
+  return VTON_MAP[key] ?? "upper";
+}
+
+function inferGender(tags: string[], productType: string, vendor: string): "male" | "female" {
+  const haystack = [...tags, productType, vendor].join(" ").toLowerCase();
+  if (haystack.includes("women") || haystack.includes("female") || haystack.includes("ladies"))
+    return "female";
+  if (haystack.includes("men") || haystack.includes("male") || haystack.includes("gents"))
+    return "male";
+  return "female";
+}
+
+const SIZE_TOKENS = new Set(["xs","s","m","l","xl","xxl","2xl","3xl","28","30","32","34","36","38","40","42","one size"]);
+
+function extractSizes(tags: string[]): string[] {
+  return tags
+    .map((t) => t.toLowerCase().trim())
+    .filter((t) => SIZE_TOKENS.has(t))
+    .map((t) => t.toUpperCase());
+}
+
+export async function POST(req: NextRequest) {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Accept either { products: ShopifyProduct[] } (Shopify export) or Product[]
+  let raw: ShopifyProduct[] = [];
+  if (Array.isArray(body)) {
+    raw = body as ShopifyProduct[];
+  } else if (
+    typeof body === "object" && body !== null &&
+    "products" in body && Array.isArray((body as Record<string, unknown>).products)
+  ) {
+    raw = (body as { products: ShopifyProduct[] }).products;
+  } else {
+    return NextResponse.json({ error: "Expected { products: [...] } or [...]" }, { status: 400 });
+  }
+
+  if (raw.length === 0) {
+    return NextResponse.json({ error: "Empty product list" }, { status: 400 });
+  }
+  if (raw.length > 500) {
+    return NextResponse.json({ error: "Max 500 products per upload" }, { status: 400 });
+  }
+
+  const converted: Product[] = raw.map((p, i) => {
+    const tagsRaw: string[] = Array.isArray(p.tags)
+      ? p.tags
+      : typeof p.tags === "string"
+        ? p.tags.split(",").map((t: string) => t.trim())
+        : [];
+
+    const priceStr = p.variants?.[0]?.price ?? "0";
+    const price = Math.round(parseFloat(priceStr));
+    const productType = p.product_type ?? "Tops";
+    const sizes = extractSizes(tagsRaw);
+
+    return {
+      id: String(p.id ?? `upload-${i}`),
+      handle: p.handle ?? `product-${i}`,
+      title: p.title ?? "Untitled",
+      description: p.body_html ? stripHtml(p.body_html) : "",
+      product_type: productType,
+      vendor: p.vendor ?? "",
+      gender: inferGender(tagsRaw, productType, p.vendor ?? ""),
+      price,
+      available: true,
+      image_urls: (p.images ?? []).map((img) => img.src ?? "").filter(Boolean),
+      tags: tagsRaw,
+      sizes: sizes.length > 0 ? sizes : ["S", "M", "L", "XL"],
+      vton_category: inferVtonCategory(productType),
+    };
+  });
+
+  // If MongoDB is available, upsert products
+  if (process.env.MONGODB_URI) {
+    try {
+      const { connectDB, ProductModel } = await import("@/lib/mongodb");
+      await connectDB();
+      const ops = converted.map((p) => ({
+        updateOne: {
+          filter: { id: p.id },
+          update: { $set: p },
+          upsert: true,
+        },
+      }));
+      await ProductModel.bulkWrite(ops);
+      return NextResponse.json({ ok: true, count: converted.length, storage: "mongodb" });
+    } catch (err) {
+      console.error("[catalog] MongoDB upsert failed:", err);
+    }
+  }
+
+  // No MongoDB — return the parsed products for the caller to handle
+  return NextResponse.json({
+    ok: true,
+    count: converted.length,
+    storage: "static",
+    products: converted,
+    note: "MongoDB not configured. Products returned but not persisted. Set MONGODB_URI to enable persistence.",
+  });
+}

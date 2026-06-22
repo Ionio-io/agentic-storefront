@@ -1,0 +1,96 @@
+"use client";
+import { Message, CartItem, Product } from "@/types";
+import { ProductCard } from "./ProductCard";
+import { clsx } from "clsx";
+
+interface Props {
+  message: Message;
+  onAddToCart: (item: CartItem) => void;
+  onTryOn: (product: Product) => void;
+}
+
+export function TypingIndicator() {
+  return (
+    <div className="flex items-start gap-3 animate-fade-in">
+      <div className="w-6 h-6 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-gold text-[10px]">✦</span>
+      </div>
+      <div className="bg-white border border-border rounded-lg rounded-tl-sm px-4 py-3">
+        <div className="flex gap-1.5 items-center h-4">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="w-1 h-1 rounded-full bg-gold animate-pulse-dot"
+              style={{ animationDelay: `${i * 0.2}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function MessageBubble({ message, onAddToCart, onTryOn }: Props) {
+  const isUser = message.role === "user";
+
+  return (
+    <div
+      className={clsx(
+        "flex items-start gap-3 animate-fade-up",
+        isUser ? "flex-row-reverse" : "flex-row"
+      )}
+    >
+      {/* Avatar — Aria only */}
+      {!isUser && (
+        <div className="w-6 h-6 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span className="text-gold text-[10px]">✦</span>
+        </div>
+      )}
+
+      <div className={clsx("flex flex-col gap-3", isUser ? "items-end max-w-[75%]" : "items-start max-w-[88%]")}>
+        {/* Bubble */}
+        {message.content && (
+          <div
+            className={clsx(
+              "text-sm leading-[1.7] px-4 py-3",
+              isUser
+                ? "bg-ivory border border-border rounded-lg rounded-tr-sm text-dark font-sans"
+                : "bg-white border border-border/70 rounded-lg rounded-tl-sm text-dark font-sans shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+            )}
+          >
+            {message.content}
+          </div>
+        )}
+
+        {/* Product cards */}
+        {message.products && message.products.length > 0 && (
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1 w-[calc(100vw-6rem)] max-w-[640px]">
+            {message.products.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onAddToCart={onAddToCart}
+                onTryOn={onTryOn}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* VTO result */}
+        {message.vtoResult && (
+          <div className="border border-border rounded-lg overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={message.vtoResult}
+              alt="Try-on result"
+              className="w-56 object-cover"
+            />
+            <div className="bg-gold/5 border-t border-border px-3 py-2 text-xs text-taupe font-sans tracking-wide">
+              ✦ Virtual Try-On Result
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
