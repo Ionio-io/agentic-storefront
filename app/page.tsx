@@ -248,7 +248,7 @@ export default function HomePage() {
               { label: "Natural Language Discovery", desc: `Just say what you want — "a floral dress under ₹2000 for a wedding" — and ${agentName} searches the entire catalog instantly. No filters, no dropdown menus.` },
               { label: "Virtual Try-On", desc: "Upload your photo and see exactly how any garment looks on you before buying. Reduces guesswork and cuts down returns — all inside the chat." },
               { label: "Conversational Checkout", desc: "Pick your size and add to bag without leaving the conversation. No page redirects, no long forms — the entire purchase happens right here." },
-              { label: "Intent-Aware Recommendations", desc: "Tell Aria your occasion, budget, or vibe and she narrows down to exactly what you need. The agent understands context, not just keywords." },
+              { label: "Intent-Aware Recommendations", desc: `Tell ${agentName} your occasion, budget, or vibe and she narrows down to exactly what you need. The agent understands context, not just keywords.` },
               { label: "Personal Stylist Memory", desc: `${agentName} remembers your style preferences and size across visits. Every conversation gets more personalised — like a stylist who already knows you.` },
               { label: "First-Party Brand Experience", desc: `This is a storefront the brand owns — not a third-party chatbot. ${agentName} carries ${brandName}'s personality and keeps you in a direct relationship with the brand.` },
             ].map((f) => (

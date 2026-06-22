@@ -277,7 +277,7 @@ export function AdminDashboard({ brand, stats, userStats, systemStatus }: Props)
             <div className="d-bar-dot" />
             <span className="d-bar-title">Dashboard</span>
             <div className="d-bar-sep" />
-            <span className="d-bar-sub">Westside Admin</span>
+            <span className="d-bar-sub">{brand.name} Admin</span>
           </div>
           <div className="d-bar-r">
             {lastUpdated && (

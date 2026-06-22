@@ -334,6 +334,7 @@ export function ChatWindow({
             onImageSend={handleImageSend}
             disabled={thinking}
             showSuggestions={isFirst}
+            agentName={agentName}
           />
         </div>
       </div>
@@ -348,6 +349,7 @@ export function ChatWindow({
         onUpdateQty={updateQty}
         onRemove={removeItem}
         onCheckoutComplete={handleCheckoutComplete}
+        agentName={agentName}
       />
     </div>
   );

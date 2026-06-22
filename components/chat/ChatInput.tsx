@@ -15,9 +15,10 @@ interface Props {
   onImageSend?: (base64: string, filename: string) => void;
   disabled?: boolean;
   showSuggestions?: boolean;
+  agentName?: string;
 }
 
-export function ChatInput({ onSend, onImageSend, disabled, showSuggestions }: Props) {
+export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agentName = "your stylist" }: Props) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -86,7 +87,7 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions }: Pr
             value={value}
             onChange={(e) => { setValue(e.target.value); autoResize(); }}
             onKeyDown={handleKey}
-            placeholder="Ask Aria anything — dresses, shirts, outfit ideas…"
+            placeholder={`Ask ${agentName} anything — dresses, shirts, outfit ideas…`}
             disabled={disabled}
             className="flex-1 resize-none outline-none font-sans text-sm text-dark placeholder:text-border bg-transparent leading-relaxed disabled:opacity-40"
             style={{ minHeight: "28px" }}

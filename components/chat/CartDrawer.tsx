@@ -18,6 +18,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onUpdateQty: (productId: string, size: string, delta: number) => void;
+  agentName?: string;
   onRemove: (productId: string, size: string) => void;
   onCheckoutComplete?: () => void;
 }
@@ -28,7 +29,7 @@ const EMPTY_ADDR: ShippingAddress = {
   name: "", phone: "", line1: "", city: "", state: "", pincode: "",
 };
 
-export function CartDrawer({ items, open, onClose, onUpdateQty, onRemove, onCheckoutComplete }: Props) {
+export function CartDrawer({ items, open, onClose, onUpdateQty, onRemove, onCheckoutComplete, agentName = "your stylist" }: Props) {
   const [view, setView] = useState<View>("cart");
   const [addr, setAddr] = useState<ShippingAddress>(EMPTY_ADDR);
   const [placing, setPlacing] = useState(false);
@@ -140,7 +141,7 @@ export function CartDrawer({ items, open, onClose, onUpdateQty, onRemove, onChec
                   <span className="text-4xl font-display text-border/60">✦</span>
                   <div className="text-center">
                     <p className="font-sans text-xs text-taupe">Your bag is empty</p>
-                    <p className="font-sans text-[10px] text-border mt-1 tracking-wide">Ask Aria to find something beautiful</p>
+                    <p className="font-sans text-[10px] text-border mt-1 tracking-wide">Ask {agentName} to find something beautiful</p>
                   </div>
                 </div>
               ) : (
