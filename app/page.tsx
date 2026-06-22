@@ -27,14 +27,23 @@ export default function HomePage() {
   const [focused, setFocused] = useState(false);
   const [step, setStep] = useState<Step | null>(null);
   const [pendingQuery, setPendingQuery] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [brandName, setBrandName] = useState("Westside");
+  const [agentName, setAgentName] = useState("Aria");
 
-  // Redirect already-authenticated users directly to chat
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((data) => { if (data?.user) router.replace("/chat"); })
+      .then((data) => { if (data?.user) setIsLoggedIn(true); })
       .catch(() => {});
-  }, [router]);
+    fetch("/api/brand")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.name) setBrandName(d.name);
+        if (d?.agentName) setAgentName(d.agentName);
+      })
+      .catch(() => {});
+  }, []);
 
   // Shopper auth state
   const [userMode, setUserMode] = useState<UserMode>("login");
@@ -67,7 +76,12 @@ export default function HomePage() {
   }, [step]);
 
   function openModal(q?: string) {
-    setPendingQuery((q ?? query).trim());
+    const pending = (q ?? query).trim();
+    setPendingQuery(pending);
+    if (isLoggedIn) {
+      router.push(pending ? `/chat?q=${encodeURIComponent(pending)}` : "/chat");
+      return;
+    }
     setStep("role");
   }
 
@@ -143,7 +157,7 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 md:px-16 py-6 border-b border-border/50">
-        <span className="font-display text-xl font-600 tracking-widest text-dark uppercase">Westside</span>
+        <span className="font-display text-xl font-600 tracking-widest text-dark uppercase">{brandName}</span>
         <button onClick={() => openModal()} className="font-sans text-xs tracking-[0.15em] uppercase text-taupe hover:text-dark transition-colors">
           Open Storefront →
         </button>
@@ -153,7 +167,7 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-20">
         <div className="animate-fade-up animate-delay-100 inline-flex items-center gap-2.5 mb-10" style={{ animationFillMode: "both" }}>
           <span className="text-gold text-xs">✦</span>
-          <span className="font-sans text-xs tracking-[0.25em] uppercase text-taupe">AI Styling Assistant · Powered by Aria</span>
+          <span className="font-sans text-xs tracking-[0.25em] uppercase text-taupe">AI Styling Assistant · Powered by {agentName}</span>
           <span className="text-gold text-xs">✦</span>
         </div>
         <div className="overflow-hidden mb-2">
@@ -168,7 +182,7 @@ export default function HomePage() {
         </div>
         <div className="w-24 h-px bg-gold mb-8 animate-rule-grow animate-delay-400" style={{ animationFillMode: "both" }} />
         <p className="font-sans text-taupe text-base md:text-lg leading-relaxed max-w-sm mb-12 animate-fade-up animate-delay-500" style={{ animationFillMode: "both" }}>
-          Tell Aria what you&apos;re looking for. She curates, styles, and lets you try it on before you buy.
+          Tell {agentName} what you&apos;re looking for. She curates, styles, and lets you try it on before you buy.
         </p>
 
         {/* Input */}
@@ -226,17 +240,17 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-6 py-16">
           <div className="flex items-center gap-4 mb-12">
             <div className="h-px flex-1 bg-border" />
-            <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-taupe">Agentic Storefront · What Aria Can Do</span>
+            <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-taupe">Agentic Storefront · What {agentName} Can Do</span>
             <div className="h-px flex-1 bg-border" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border/40">
             {[
-              { label: "Natural Language Discovery", desc: "Just say what you want — \"a floral dress under ₹2000 for a wedding\" — and Aria searches the entire catalog instantly. No filters, no dropdown menus." },
+              { label: "Natural Language Discovery", desc: `Just say what you want — "a floral dress under ₹2000 for a wedding" — and ${agentName} searches the entire catalog instantly. No filters, no dropdown menus.` },
               { label: "Virtual Try-On", desc: "Upload your photo and see exactly how any garment looks on you before buying. Reduces guesswork and cuts down returns — all inside the chat." },
               { label: "Conversational Checkout", desc: "Pick your size and add to bag without leaving the conversation. No page redirects, no long forms — the entire purchase happens right here." },
               { label: "Intent-Aware Recommendations", desc: "Tell Aria your occasion, budget, or vibe and she narrows down to exactly what you need. The agent understands context, not just keywords." },
-              { label: "Personal Stylist Memory", desc: "Aria remembers your style preferences and size across visits. Every conversation gets more personalised — like a stylist who already knows you." },
-              { label: "First-Party Brand Experience", desc: "This is a storefront the brand owns — not a third-party chatbot. Aria carries Westside's personality and keeps you in a direct relationship with the brand." },
+              { label: "Personal Stylist Memory", desc: `${agentName} remembers your style preferences and size across visits. Every conversation gets more personalised — like a stylist who already knows you.` },
+              { label: "First-Party Brand Experience", desc: `This is a storefront the brand owns — not a third-party chatbot. ${agentName} carries ${brandName}'s personality and keeps you in a direct relationship with the brand.` },
             ].map((f) => (
               <div key={f.label} className="bg-ivory px-8 py-7 hover:bg-cream transition-colors duration-300 group">
                 <div className="flex items-start gap-3 mb-2">
@@ -252,7 +266,7 @@ export default function HomePage() {
 
       <footer className="border-t border-border/50">
         <div className="text-center py-4 text-[11px] tracking-[0.15em] uppercase text-border font-sans">
-          Westside AI · Demo · Built with Next.js, OpenRouter, fal.ai
+          {brandName} · Built with Next.js, OpenRouter, fal.ai
         </div>
       </footer>
 
@@ -289,7 +303,7 @@ export default function HomePage() {
                       <span className="text-gold text-sm">✦</span>
                     </div>
                     <div>
-                      <p className="font-display text-base text-dark group-hover:text-gold transition-colors">Shop with Aria</p>
+                      <p className="font-display text-base text-dark group-hover:text-gold transition-colors">Shop with {agentName}</p>
                       <p className="font-sans text-[11px] text-taupe mt-0.5">Browse and try on as a guest — no account needed</p>
                     </div>
                   </button>
@@ -339,7 +353,7 @@ export default function HomePage() {
                   {userMode === "login" ? "Sign In" : "Create Account"}
                 </p>
                 <h2 className="font-display text-2xl text-dark mb-6 leading-tight">
-                  {userMode === "login" ? "Welcome back" : "Join Westside AI"}
+                  {userMode === "login" ? "Welcome back" : `Join ${brandName}`}
                 </h2>
 
                 <form onSubmit={handleUserSubmit} className="space-y-4">

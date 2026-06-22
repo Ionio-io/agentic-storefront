@@ -1,13 +1,20 @@
 import { DEFAULT_BRAND, BrandConfig } from "@/data/brand";
 
-// Short TTL cache — avoids a DB hit on every agent call, but ensures admin
-// changes propagate within 15 seconds even across warm Vercel lambda instances.
-let _cache: BrandConfig | null = null;
-let _cachedAt = 0;
+// Use global so the cache survives Next.js HMR module reloads in dev mode.
+declare global {
+  // eslint-disable-next-line no-var
+  var _brandCache: BrandConfig | null | undefined;
+  // eslint-disable-next-line no-var
+  var _brandCachedAt: number | undefined;
+}
+
 const TTL_MS = 15_000;
 
 export async function getBrandConfig(): Promise<BrandConfig> {
-  if (_cache && Date.now() - _cachedAt < TTL_MS) return _cache;
+  const now = Date.now();
+  if (global._brandCache && now - (global._brandCachedAt ?? 0) < TTL_MS) {
+    return global._brandCache;
+  }
 
   if (process.env.MONGODB_URI) {
     try {
@@ -15,9 +22,9 @@ export async function getBrandConfig(): Promise<BrandConfig> {
       await connectDB();
       const doc = await BrandConfigModel.findOne({ key: "brand" }).lean() as { value?: BrandConfig } | null;
       if (doc?.value) {
-        _cache = doc.value as BrandConfig;
-        _cachedAt = Date.now();
-        return _cache;
+        global._brandCache = doc.value as BrandConfig;
+        global._brandCachedAt = now;
+        return global._brandCache;
       }
     } catch {
       // MongoDB unavailable — fall through to default
@@ -28,9 +35,8 @@ export async function getBrandConfig(): Promise<BrandConfig> {
 }
 
 export async function saveBrandConfig(config: BrandConfig): Promise<void> {
-  // Bust cache so the same lambda instance sees the new config immediately
-  _cache = config;
-  _cachedAt = Date.now();
+  global._brandCache = config;
+  global._brandCachedAt = Date.now();
 
   if (process.env.MONGODB_URI) {
     const { connectDB, BrandConfigModel } = await import("@/lib/mongodb");
@@ -44,6 +50,6 @@ export async function saveBrandConfig(config: BrandConfig): Promise<void> {
 }
 
 export function clearBrandConfigCache(): void {
-  _cache = null;
-  _cachedAt = 0;
+  global._brandCache = null;
+  global._brandCachedAt = 0;
 }
