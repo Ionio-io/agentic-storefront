@@ -2,12 +2,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import { ShoppingBag, ArrowLeft, Package, RotateCcw } from "lucide-react";
+import { ShoppingBag, ArrowLeft, Package } from "lucide-react";
 import { Message, CartItem, Product } from "@/types";
 import { MessageBubble, TypingIndicator } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { VTOWidget } from "./VTOWidget";
 import { CartDrawer } from "./CartDrawer";
+import { getPrimaryOccasion, getDaysUntil } from "@/lib/occasions";
 
 interface Props {
   initialQuery?: string;
@@ -22,15 +23,43 @@ export function ChatWindow({
   welcomeMessage = "Good to have you here. I'm Aria — your Westside stylist. Tell me what you're looking for today: an occasion, a mood, a budget, or just browse.",
   brandName = "Westside",
 }: Props) {
-  const greeting: Message = {
+  // Build two-message greeting: base intro + optional festival nudge
+  const primaryOccasion = getPrimaryOccasion();
+
+  const baseGreeting: Message = {
     id: "greeting",
     role: "assistant",
     content: welcomeMessage,
     timestamp: new Date(),
   };
 
+  const occasionGreeting: Message | null = primaryOccasion
+    ? (() => {
+        const days = getDaysUntil(primaryOccasion);
+        const daysText = days === 0 ? "today!" : days === 1 ? "tomorrow!" : `in ${days} days.`;
+        return {
+          id: "occasion",
+          role: "assistant" as const,
+          content: `${primaryOccasion.emoji} By the way — ${primaryOccasion.name} is ${daysText} Looking for the perfect festive outfit? Just ask me!`,
+          timestamp: new Date(),
+        };
+      })()
+    : null;
+
+  const baseMessages: Message[] = [baseGreeting, ...(occasionGreeting ? [occasionGreeting] : [])];
+
+  const occasionSuggestions: string[] | undefined = primaryOccasion
+    ? [
+        `What to wear for ${primaryOccasion.name}?`,
+        `Show me ${primaryOccasion.name} outfits under ₹2000`,
+        "Casual western outfit for women",
+        "Office look for men under ₹3000",
+      ]
+    : undefined;
+
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([greeting]);
+  const baseMessagesRef = useRef<Message[]>(baseMessages);
+  const [messages, setMessages] = useState<Message[]>(baseMessages);
   const [thinking, setThinking] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -60,7 +89,7 @@ export function ChatWindow({
             content: m.content,
             timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
           }));
-          setMessages([greeting, ...loaded]);
+          setMessages([...baseMessagesRef.current, ...loaded]);
         }
       })
       .catch(() => {/* not logged in — ignore */})
@@ -71,7 +100,7 @@ export function ChatWindow({
   // Auto-save conversation (debounced 2s) for logged-in users
   useEffect(() => {
     if (!historyLoaded) return;
-    const nonGreeting = messages.filter((m) => m.id !== "greeting");
+    const nonGreeting = messages.filter((m) => m.role === "user" || (m.role === "assistant" && m.id !== "greeting" && m.id !== "occasion"));
     if (nonGreeting.length === 0) return;
     const t = setTimeout(() => {
       fetch("/api/conversation", {
@@ -125,9 +154,8 @@ export function ChatWindow({
   }, []);
 
   const clearChat = useCallback(() => {
-    setMessages([greeting]);
+    setMessages(baseMessagesRef.current);
     fetch("/api/conversation", { method: "DELETE" }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sendMessage = useCallback(async (text: string, imageBase64?: string) => {
@@ -247,7 +275,7 @@ export function ChatWindow({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isFirst = messages.length === 1 && !thinking;
+  const isFirst = !messages.some((m) => m.role === "user") && !thinking;
 
   return (
     <div className="flex flex-col h-screen bg-cream">
@@ -276,14 +304,15 @@ export function ChatWindow({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={clearChat}
-            aria-label="New chat"
-            title="New chat"
-            className="text-taupe hover:text-dark transition-colors"
-          >
-            <RotateCcw size={14} strokeWidth={1.5} />
-          </button>
+          {messages.some((m) => m.role === "user") && (
+            <button
+              onClick={clearChat}
+              aria-label="Clear chat"
+              className="font-sans text-[10px] tracking-[0.1em] uppercase text-taupe hover:text-dark transition-colors border border-border px-2 py-1 hover:border-dark"
+            >
+              Clear
+            </button>
+          )}
           <button
             onClick={() => router.push("/orders")}
             aria-label="My orders"
@@ -335,6 +364,7 @@ export function ChatWindow({
             disabled={thinking}
             showSuggestions={isFirst}
             agentName={agentName}
+            suggestions={occasionSuggestions}
           />
         </div>
       </div>

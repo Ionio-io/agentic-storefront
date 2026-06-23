@@ -9,11 +9,14 @@ interface Props {
   onClose: () => void;
 }
 
-const SAMPLE_PERSON =
+const SAMPLE_FEMALE =
   "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=512&h=768&fit=crop&q=80";
+const SAMPLE_MALE =
+  "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=512&h=768&fit=crop&q=80";
 
 export function VTOWidget({ product, onClose }: Props) {
-  const [personUrl, setPersonUrl] = useState<string>(SAMPLE_PERSON);
+  const defaultPhoto = product.gender === "male" ? SAMPLE_MALE : SAMPLE_FEMALE;
+  const [personUrl, setPersonUrl] = useState<string>(defaultPhoto);
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,10 +54,10 @@ export function VTOWidget({ product, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 bg-dark/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-cream border border-border w-full max-w-2xl overflow-hidden animate-fade-up shadow-2xl">
+      <div className="bg-cream border border-border w-full max-w-xl max-h-[90vh] flex flex-col animate-fade-up shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-white">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border bg-white">
           <div className="flex items-center gap-3">
             <span className="text-gold">✦</span>
             <div>
@@ -69,13 +72,13 @@ export function VTOWidget({ product, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close virtual try-on"
-          className="text-taupe hover:text-dark transition-colors p-1"
+            className="text-taupe hover:text-dark transition-colors p-1"
           >
             <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-4 mb-5">
             {/* Person photo */}
             <div>
@@ -83,14 +86,15 @@ export function VTOWidget({ product, onClose }: Props) {
                 Your Photo
               </p>
               <div
-                className="relative h-64 bg-ivory border border-border hover:border-gold/50 transition-colors cursor-pointer overflow-hidden group"
+                className="relative bg-ivory border border-border hover:border-gold/50 transition-colors cursor-pointer overflow-hidden group"
+                style={{ aspectRatio: "3/4" }}
                 onClick={() => inputRef.current?.click()}
               >
                 <Image
                   src={personUrl}
                   alt="Person"
                   fill
-                  className="object-cover object-top"
+                  className="object-contain"
                   sizes="256px"
                   unoptimized
                 />
@@ -117,13 +121,13 @@ export function VTOWidget({ product, onClose }: Props) {
               <p className="font-sans text-[9px] tracking-[0.2em] uppercase text-taupe mb-2">
                 Try-On Result
               </p>
-              <div className="relative h-64 bg-ivory border border-border flex items-center justify-center overflow-hidden">
+              <div className="relative bg-ivory border border-border flex items-center justify-center overflow-hidden" style={{ aspectRatio: "3/4" }}>
                 {result ? (
                   <Image
                     src={result}
                     alt="Try-on result"
                     fill
-                    className="object-cover object-top"
+                    className="object-contain"
                     sizes="256px"
                     unoptimized
                   />

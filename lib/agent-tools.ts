@@ -7,6 +7,25 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "get_wishlist_products",
+      description:
+        "Fetch the products saved in the shopper's wishlist. Use this when the shopper says 'my wishlist', 'items I saved', 'build an outfit from my saved items', or 'what did I save'.",
+      parameters: {
+        type: "object",
+        properties: {
+          productIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "Array of product IDs from the shopper's wishlist. These will be provided in the system context.",
+          },
+        },
+        required: ["productIds"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_products",
       description:
         "Search the brand catalog for products. Use this whenever the shopper asks for clothing, outfits, or anything to wear. Supports filtering by gender, price, occasion, and product type.",
@@ -169,7 +188,7 @@ export async function searchProducts(args: SearchArgs): Promise<Product[]> {
     limit = 4,
   } = args;
 
-  const cap = Math.min(limit, 6);
+  const maxResults = Math.min(limit, 20);
   const occasionWords = OCCASION_TAGS[occasion] ?? [];
 
   const PM = await getProductModel();
@@ -197,12 +216,12 @@ export async function searchProducts(args: SearchArgs): Promise<Product[]> {
         ];
       }
 
-      const products = await PM.find(filter).limit(cap).lean() as unknown as Product[];
+      const products = await PM.find(filter).limit(maxResults).lean() as unknown as Product[];
       if (products.length > 0) return products;
     } catch { /* fall through to static */ }
   }
 
-  // Static fallback
+  // Static fallback — score every product, return top maxResults
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   const scored = DEMO_PRODUCTS.map((p) => {
     if (gender !== "all" && p.gender !== gender) return { p, score: -1 };
@@ -211,14 +230,16 @@ export async function searchProducts(args: SearchArgs): Promise<Product[]> {
       return { p, score: -1 };
     const haystack = [p.title, p.description, p.product_type, p.vendor, ...p.tags].join(" ").toLowerCase();
     const queryScore = words.filter((w) => haystack.includes(w)).length;
-    if (queryScore === 0 && words.length > 0) return { p, score: -1 };
+    // If no query words matched at all, still include with low score when searching broadly
     const occasionScore = occasionWords.filter((w) => haystack.includes(w)).length * 0.5;
-    return { p, score: queryScore + occasionScore };
+    const total = queryScore + occasionScore;
+    if (total === 0 && words.length > 0) return { p, score: -1 };
+    return { p, score: total };
   });
   return scored
     .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, cap)
+    .slice(0, maxResults)
     .map((s) => s.p);
 }
 
@@ -364,14 +385,33 @@ export async function filterBySize(args: FilterBySizeArgs): Promise<Product[]> {
   }).slice(0, 6);
 }
 
+interface GetWishlistArgs {
+  productIds: string[];
+}
+
+export async function getWishlistProducts(args: GetWishlistArgs): Promise<Product[]> {
+  const { productIds } = args;
+  if (!productIds?.length) return [];
+
+  const PM = await getProductModel();
+  if (PM) {
+    try {
+      const products = await PM.find({ id: { $in: productIds } }).limit(10).lean() as unknown as Product[];
+      if (products.length > 0) return products;
+    } catch { /* fall through */ }
+  }
+  return DEMO_PRODUCTS.filter((p) => productIds.includes(p.id)).slice(0, 10);
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 export async function executeToolCall(name: string, args: unknown): Promise<Product[]> {
   switch (name) {
-    case "search_products":     return searchProducts(args as SearchArgs);
-    case "build_outfit":        return buildOutfit(args as BuildOutfitArgs);
-    case "get_similar_products": return getSimilarProducts(args as GetSimilarArgs);
-    case "filter_by_size":      return filterBySize(args as FilterBySizeArgs);
-    default:                    return [];
+    case "search_products":        return searchProducts(args as SearchArgs);
+    case "build_outfit":           return buildOutfit(args as BuildOutfitArgs);
+    case "get_similar_products":   return getSimilarProducts(args as GetSimilarArgs);
+    case "filter_by_size":         return filterBySize(args as FilterBySizeArgs);
+    case "get_wishlist_products":  return getWishlistProducts(args as GetWishlistArgs);
+    default:                       return [];
   }
 }

@@ -129,3 +129,45 @@ const ConversationSchema = new mongoose.Schema({
 
 export const ConversationModel =
   mongoose.models.Conversation ?? mongoose.model("Conversation", ConversationSchema);
+
+const StyleProfileSchema = new mongoose.Schema({
+  sessionId: { type: String, required: true, unique: true },
+  userId:    String,
+  updatedAt: { type: Date, default: Date.now },
+  sizeProfile: {
+    top:      String,
+    bottom:   String,
+    ethnic:   String,
+    fitPref:  String,
+    height:   Number,
+    weight:   Number,
+    bodyShape: String,
+  },
+  stylePreferences: {
+    colors:    [String],
+    occasions: [String],
+    budgetMin: Number,
+    budgetMax: Number,
+  },
+  recentSearches:   [String],
+  viewedProductIds: [String],
+  savedProductIds:  [String],
+  giftFinderUsed:   { type: Boolean, default: false },
+});
+
+StyleProfileSchema.index({ userId: 1 });
+
+export const StyleProfileModel =
+  mongoose.models.StyleProfile ?? mongoose.model("StyleProfile", StyleProfileSchema);
+
+const DemandSignalSchema = new mongoose.Schema({
+  productId:     { type: String, required: true, unique: true },
+  viewCount:     { type: Number, default: 0 },
+  cartAddCount:  { type: Number, default: 0 },
+  wishlistCount: { type: Number, default: 0 },
+  lastReset:     { type: Date, default: Date.now },
+  updatedAt:     { type: Date, default: Date.now },
+});
+
+export const DemandSignalModel =
+  mongoose.models.DemandSignal ?? mongoose.model("DemandSignal", DemandSignalSchema);

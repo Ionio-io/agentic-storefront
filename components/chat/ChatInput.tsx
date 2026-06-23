@@ -16,9 +16,11 @@ interface Props {
   disabled?: boolean;
   showSuggestions?: boolean;
   agentName?: string;
+  suggestions?: string[];
 }
 
-export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agentName = "your stylist" }: Props) {
+export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agentName = "your stylist", suggestions }: Props) {
+  const chips = suggestions ?? SUGGESTIONS;
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -62,7 +64,7 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
       {/* Suggestion chips */}
       {showSuggestions && (
         <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {SUGGESTIONS.map((s) => (
+          {chips.map((s) => (
             <button
               key={s}
               onClick={() => onSend(s)}
