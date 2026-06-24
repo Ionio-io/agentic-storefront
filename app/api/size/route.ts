@@ -2,94 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-
-// ─── Indian garment size charts ───────────────────────────────────────────────
-
-const SIZE_CHARTS = `
-INDIAN WOMEN'S ETHNIC WEAR (Ethnic Suits, Kurtas, Kurtis):
-XS: bust 30–31", waist 25–26", hips 34–35"
-S:  bust 32–33", waist 26–28", hips 36–37"
-M:  bust 34–35", waist 28–30", hips 38–39"
-L:  bust 36–37", waist 30–32", hips 40–41"
-XL: bust 38–40", waist 32–34", hips 42–44"
-XXL: bust 41–43", waist 35–37", hips 45–47"
-Note: Indian ethnic wear is cut slightly loose — if between sizes, go down one.
-
-WOMEN'S WESTERN WEAR (Tops, T-Shirts, Dresses):
-XS: bust 30–32", waist 24–26"
-S:  bust 32–34", waist 26–28"
-M:  bust 34–36", waist 28–30"
-L:  bust 36–38", waist 30–32"
-XL: bust 38–40", waist 32–34"
-XXL: bust 40–43", waist 34–37"
-Note: Western tops run slightly small — if between sizes, size up.
-
-WOMEN'S BOTTOMS / TROUSERS (waist in inches):
-28: waist 26–27"
-30: waist 28–29"
-32: waist 30–31"
-34: waist 32–33"
-36: waist 34–35"
-38: waist 36–37"
-40: waist 38–39"
-Note: Denim waistband sits 1" tight — size up if in doubt.
-
-MEN'S SHIRTS (Indian sizing runs slightly smaller than Western):
-XS: chest 36–37"
-S:  chest 38–39"
-M:  chest 40–41"
-L:  chest 42–43"
-XL: chest 44–45"
-XXL: chest 46–48"
-Note: Indian shirts have shorter sleeves; order up if you have broad shoulders.
-
-MEN'S TROUSERS (waist in inches, similar to Western):
-28: waist 27–28"
-30: waist 29–30"
-32: waist 31–32"
-34: waist 33–34"
-36: waist 35–36"
-38: waist 37–38"
-40: waist 39–40"
-`;
-
-// ─── Body shape → measurement estimation logic (embedded in prompt) ───────────
-
-const BODY_ESTIMATION_GUIDANCE = `
-When estimating measurements from height, weight, and body shape:
-
-For WOMEN:
-- Height 145–155cm, Weight 45–55kg → typically bust 32–34", waist 25–27", hips 35–37"
-- Height 155–165cm, Weight 50–60kg → typically bust 33–35", waist 26–28", hips 36–38"
-- Height 155–165cm, Weight 60–70kg → typically bust 35–37", waist 29–32", hips 38–41"
-- Height 155–165cm, Weight 70–80kg → typically bust 37–40", waist 32–35", hips 41–44"
-- Height 165–175cm, Weight 55–65kg → typically bust 34–36", waist 27–30", hips 37–40"
-- Height 165–175cm, Weight 65–80kg → typically bust 36–39", waist 30–34", hips 40–43"
-
-Body shape modifiers:
-- PEAR: hips 2–4" larger than bust; size by hips for bottoms, bust for tops
-- HOURGLASS: bust and hips roughly equal, waist 10–12" smaller; size by bust/hips
-- ATHLETIC: shoulders broad, hips narrow; size by shoulders/chest
-- PLUS: all measurements scale up proportionally; prefer ethnic runs-large sizing
-- STRAIGHT: bust/waist/hips within 2" of each other; standard sizing applies
-
-For MEN:
-- Height 160–168cm, Weight 55–65kg → typically chest 36–38", waist 30–32"
-- Height 168–175cm, Weight 65–75kg → typically chest 38–40", waist 32–34"
-- Height 175–183cm, Weight 70–85kg → typically chest 40–42", waist 34–36"
-- Height 183–190cm, Weight 80–95kg → typically chest 42–44", waist 36–38"
-
-Fit preference modifier:
-- FITTED: subtract 1 size from the standard recommendation
-- REGULAR: use the standard recommendation
-- RELAXED: add 1 size to the standard recommendation (but not beyond XXL/40)
-`;
-
 interface SizeRequest {
   height: number;
   weight: number;
-  age?: number;
   bodyShape: "straight" | "pear" | "athletic" | "plus" | "hourglass";
   fitPreference: "fitted" | "regular" | "relaxed";
   productType: string;
@@ -98,91 +13,190 @@ interface SizeRequest {
 
 interface SizeResult {
   size: string;
-  confidence: number;  // 0-100
+  confidence: number;
   explanation: string;
   tips: string[];
-  sizeRange?: string;  // e.g. "Between S and M"
+  sizeRange?: string;
 }
 
+const FEMALE_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+const MALE_SIZES   = ["XS", "S", "M", "L", "XL", "XXL"];
+const BOTTOM_SIZES = ["28", "30", "32", "34", "36", "38", "40"];
+
+function isBottom(productType: string) {
+  return /trouser|jean|pant|skirt|palazzo|legging|bottom/i.test(productType);
+}
+
+function predictLocal(req: SizeRequest): SizeResult {
+  const { height, weight, bodyShape, fitPreference, productType, gender = "female" } = req;
+
+  // Estimate bust/chest and waist in inches from height + weight
+  let bust: number, waist: number;
+
+  if (gender === "female") {
+    const base = height < 155 ? { b: 30, w: 24, hw: 45 }
+                : height < 165 ? { b: 32, w: 26, hw: 50 }
+                : height < 173 ? { b: 33, w: 27, hw: 55 }
+                               : { b: 34, w: 28, hw: 60 };
+    const delta = (weight - base.hw) * 0.38;
+    bust  = base.b + delta;
+    waist = base.w + delta;
+
+    if (bodyShape === "plus")     { bust += 2; waist += 2; }
+    if (bodyShape === "hourglass") waist -= 1.5;
+    if (bodyShape === "athletic")  bust  += 1;
+    if (bodyShape === "pear")      bust  -= 1;
+  } else {
+    const base = height < 168 ? { b: 36, w: 30, hw: 60 }
+                : height < 175 ? { b: 38, w: 32, hw: 65 }
+                : height < 183 ? { b: 40, w: 34, hw: 72 }
+                               : { b: 42, w: 36, hw: 82 };
+    const delta = (weight - base.hw) * 0.32;
+    bust  = base.b + delta;
+    waist = base.w + delta;
+  }
+
+  const roundBust  = Math.round(bust);
+  const roundWaist = Math.round(waist);
+
+  // Map to size
+  let size: string;
+  let sizes: string[];
+
+  if (isBottom(productType)) {
+    sizes = BOTTOM_SIZES;
+    if (waist <= 26.5) size = "28";
+    else if (waist <= 28.5) size = "30";
+    else if (waist <= 30.5) size = "32";
+    else if (waist <= 32.5) size = "34";
+    else if (waist <= 34.5) size = "36";
+    else if (waist <= 36.5) size = "38";
+    else size = "40";
+  } else if (gender === "female") {
+    sizes = FEMALE_SIZES;
+    if (bust <= 31.5) size = "XS";
+    else if (bust <= 33.5) size = "S";
+    else if (bust <= 35.5) size = "M";
+    else if (bust <= 37.5) size = "L";
+    else if (bust <= 40) size = "XL";
+    else size = "XXL";
+  } else {
+    sizes = MALE_SIZES;
+    if (bust <= 37) size = "XS";
+    else if (bust <= 39) size = "S";
+    else if (bust <= 41) size = "M";
+    else if (bust <= 43) size = "L";
+    else if (bust <= 45) size = "XL";
+    else size = "XXL";
+  }
+
+  // Apply fit preference
+  const idx = sizes.indexOf(size);
+  if (fitPreference === "fitted"  && idx > 0)              size = sizes[idx - 1];
+  if (fitPreference === "relaxed" && idx < sizes.length - 1) size = sizes[idx + 1];
+
+  // Build explanation
+  const measurement = isBottom(productType)
+    ? `waist ~${roundWaist}"`
+    : `${gender === "female" ? "bust" : "chest"} ~${roundBust}", waist ~${roundWaist}"`;
+
+  const explanation = `Based on your height (${height} cm) and weight (${weight} kg), your estimated ${measurement}. For ${productType} with a ${fitPreference} fit, we recommend size ${size}.`;
+
+  const tips: string[] = [];
+  if (bodyShape === "pear" && !isBottom(productType))
+    tips.push("Your hips run wider — consider sizing up on bottoms while keeping this size for tops.");
+  else if (bodyShape === "hourglass")
+    tips.push("Hourglass figures fit best in stretchy or adjustable waistbands for bottoms.");
+  else if (bodyShape === "athletic")
+    tips.push("Broad shoulders may need a size up in shirts; take it in at the waist if needed.");
+
+  if (/ethnic|kurta|suit/i.test(productType))
+    tips.push("Indian ethnic wear is cut slightly loose — if between sizes, size down for a neater silhouette.");
+  else if (/shirt|top|dress/i.test(productType))
+    tips.push("Western tops run slightly smaller — if in doubt between two sizes, go up.");
+
+  tips.push(fitPreference === "relaxed"
+    ? "You prefer a relaxed fit — this size gives you comfortable room to move."
+    : fitPreference === "fitted"
+    ? "For a truly fitted look, try both this size and one size up before deciding."
+    : "This is a standard size recommendation — works well for most occasions.");
+
+  // Detect borderline (within 0.5" of a boundary)
+  let sizeRange: string | undefined;
+  const prevSize = sizes[sizes.indexOf(size) - (fitPreference === "fitted" ? 0 : 1)];
+  if (Math.abs(bust - Math.round(bust)) < 0.3 && prevSize)
+    sizeRange = `${prevSize}–${size}`;
+
+  return { size, confidence: 82, explanation, tips: tips.slice(0, 3), sizeRange };
+}
+
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+
+const SIZE_CHARTS = `
+INDIAN WOMEN'S ETHNIC WEAR: XS(bust 30-31"), S(32-33"), M(34-35"), L(36-37"), XL(38-40"), XXL(41-43")
+WOMEN'S WESTERN WEAR: XS(bust 30-32"), S(32-34"), M(34-36"), L(36-38"), XL(38-40"), XXL(40-43")
+MEN'S SHIRTS: XS(chest 36-37"), S(38-39"), M(40-41"), L(42-43"), XL(44-45"), XXL(46-48")
+BOTTOMS (waist): 28(26-27"), 30(28-29"), 32(30-31"), 34(32-33"), 36(34-35"), 38(36-37"), 40(38-39")
+`;
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  let body: SizeRequest;
   try {
-    const body = (await req.json()) as SizeRequest;
-    const { height, weight, bodyShape, fitPreference, productType, gender = "female" } = body;
+    body = (await req.json()) as SizeRequest;
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
 
-    if (!height || !weight || !bodyShape || !fitPreference || !productType) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+  const { height, weight, bodyShape, fitPreference, productType, gender = "female" } = body;
 
-    const prompt = `You are a precise Indian fashion sizing expert. A shopper needs a size recommendation.
+  if (!height || !weight || !bodyShape || !fitPreference || !productType) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
 
-SHOPPER DETAILS:
-- Height: ${height}cm
-- Weight: ${weight}kg
-- Body Shape: ${bodyShape}
-- Fit Preference: ${fitPreference}
-- Gender: ${gender}
-- Garment Category: ${productType}
+  // Try LLM first if API key is available
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const prompt = `You are an Indian fashion sizing expert. Give a size recommendation as JSON only.
 
-${BODY_ESTIMATION_GUIDANCE}
+Shopper: height=${height}cm, weight=${weight}kg, bodyShape=${bodyShape}, fit=${fitPreference}, gender=${gender}, garment=${productType}
 
 ${SIZE_CHARTS}
 
-TASK:
-1. Estimate the shopper's approximate chest/bust, waist, and hip measurements from their height, weight, and body shape using the guidance above.
-2. Apply the fit preference modifier.
-3. Map to the correct size for the garment category.
-4. Return a JSON object with exactly these fields:
-{
-  "size": "M",               // single size label (XS/S/M/L/XL/XXL or 28/30/32/34/36/38/40)
-  "confidence": 85,          // 0-100 — how confident you are (lower if borderline)
-  "explanation": "...",      // 2-3 sentences explaining WHY this size. Mention estimated measurements. Be specific.
-  "tips": ["...", "..."],    // 2-3 practical tips for this shopper for this garment type
-  "sizeRange": "S-M"        // only if borderline between two sizes; omit otherwise
-}
+Return ONLY this JSON (no markdown):
+{"size":"M","confidence":85,"explanation":"2-3 sentences with estimated measurements","tips":["tip1","tip2"],"sizeRange":"S-M or omit if not borderline"}`;
 
-Be specific and helpful. Mention the estimated measurements in your explanation. Focus on Indian sizing conventions.
-Respond with ONLY the JSON object, no markdown, no preamble.`;
+      const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "",
+          "X-Title": "Westside Size Predictor",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0,
+          max_tokens: 350,
+        }),
+      });
 
-    const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-        max_tokens: 400,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`OpenRouter ${res.status}`);
-    }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content ?? "{}";
-
-    let result: SizeResult;
-    try {
-      result = JSON.parse(content) as SizeResult;
-    } catch {
-      // Try to extract JSON from response
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) {
-        result = JSON.parse(match[0]) as SizeResult;
-      } else {
-        throw new Error("Failed to parse size recommendation");
+      if (res.ok) {
+        const data = await res.json();
+        const content: string = data.choices?.[0]?.message?.content ?? "";
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          const result = JSON.parse(match[0]) as SizeResult;
+          if (result.size && result.explanation) {
+            return NextResponse.json(result);
+          }
+        }
       }
+    } catch {
+      // fall through to local prediction
     }
-
-    return NextResponse.json(result);
-  } catch (err) {
-    console.error("[size]", err);
-    return NextResponse.json(
-      { error: "Size prediction unavailable. Please use our size guide." },
-      { status: 500 }
-    );
   }
+
+  // Algorithmic fallback — always works, no API needed
+  return NextResponse.json(predictLocal(body));
 }

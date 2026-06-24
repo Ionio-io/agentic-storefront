@@ -22,9 +22,10 @@ export async function connectDB() {
   if (!cached.promise) {
     cached.promise = mongoose.connect(uri, {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 10_000,
-      socketTimeoutMS: 45_000,
-      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5_000,
+      connectTimeoutMS: 5_000,
+      socketTimeoutMS: 10_000,
+      maxPoolSize: 5,
     });
   }
 

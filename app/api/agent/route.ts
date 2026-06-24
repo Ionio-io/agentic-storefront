@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
     wishlistIds?: string[];
   };
 
-  // Load user preferences if logged in
+  // Load user preferences if logged in — race against 3s timeout so DB latency
+  // never blocks the agent response on Vercel cold starts
   let userPrefs: UserPrefs | undefined;
   const token = req.cookies.get(USER_COOKIE)?.value;
   const user = await verifyUserToken(token);
@@ -122,17 +123,15 @@ export async function POST(req: NextRequest) {
     try {
       const { connectDB, UserModel } = await import("@/lib/mongodb");
       await connectDB();
-      const dbUser = await UserModel.findById(user.userId).select("preferences name").lean() as {
-        preferences?: { gender?: string; sizes?: string[]; maxBudget?: number };
-        name?: string;
-      } | null;
-      if (dbUser) {
-        userPrefs = { ...dbUser.preferences, name: dbUser.name };
-      }
+      const dbUser = await Promise.race([
+        UserModel.findById(user.userId).select("preferences name").maxTimeMS(3000).lean(),
+        new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+      ]) as { preferences?: { gender?: string; sizes?: string[]; maxBudget?: number }; name?: string } | null;
+      if (dbUser) userPrefs = { ...dbUser.preferences, name: dbUser.name };
     } catch {/* DB unavailable — skip prefs */}
   }
 
-  // Try to load style profile from session cookie (anonymous)
+  // Try to load style profile from session cookie (anonymous) — same 3s cap
   let sessionStyleMemory = styleMemory ?? "";
   if (!sessionStyleMemory) {
     const sessionId = req.cookies.get("wss-session")?.value;
@@ -140,29 +139,27 @@ export async function POST(req: NextRequest) {
       try {
         const { connectDB, StyleProfileModel } = await import("@/lib/mongodb");
         await connectDB();
-        const profile = await StyleProfileModel.findOne({ sessionId }).lean() as {
+        const profile = await Promise.race([
+          StyleProfileModel.findOne({ sessionId }).maxTimeMS(3000).lean(),
+          new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+        ]) as {
           sizeProfile?: Record<string, string>;
           stylePreferences?: { colors?: string[]; occasions?: string[]; budgetMin?: number; budgetMax?: number };
           recentSearches?: string[];
-          savedProductIds?: string[];
         } | null;
         if (profile) {
           const lines: string[] = [];
           if (profile.sizeProfile?.top) lines.push(`• usual size in tops: ${profile.sizeProfile.top}`);
           if (profile.sizeProfile?.ethnic) lines.push(`• usual size in ethnic wear: ${profile.sizeProfile.ethnic}`);
           if (profile.sizeProfile?.bottom) lines.push(`• usual size in bottoms: ${profile.sizeProfile.bottom}`);
-          if (profile.stylePreferences?.budgetMin != null && profile.stylePreferences?.budgetMax != null) {
+          if (profile.stylePreferences?.budgetMin != null && profile.stylePreferences?.budgetMax != null)
             lines.push(`• budget ₹${profile.stylePreferences.budgetMin}–₹${profile.stylePreferences.budgetMax}`);
-          }
-          if (profile.stylePreferences?.colors?.length) {
+          if (profile.stylePreferences?.colors?.length)
             lines.push(`• favourite colours: ${profile.stylePreferences.colors.join(", ")}`);
-          }
-          if (profile.recentSearches?.length) {
+          if (profile.recentSearches?.length)
             lines.push(`• recent searches: ${profile.recentSearches.slice(0, 3).join(", ")}`);
-          }
-          if (lines.length) {
+          if (lines.length)
             sessionStyleMemory = `SHOPPER MEMORY:\n${lines.join("\n")}\nApply sizes and budget as defaults.`;
-          }
         }
       } catch {/* skip */}
     }

@@ -1,71 +1,41 @@
 import { DEFAULT_BRAND, BrandConfig } from "@/data/brand";
-import fs from "fs";
-import path from "path";
 
-// Global cache survives Next.js HMR module reloads in dev
-declare global {
-  // eslint-disable-next-line no-var
-  var _brandCache: BrandConfig | null | undefined;
-  // eslint-disable-next-line no-var
-  var _brandCachedAt: number | undefined;
-}
-
-const TTL_MS = 15_000;
-
-// Local file fallback — persists across server restarts without MongoDB
-const OVERRIDE_PATH = path.join(process.cwd(), "data", "brand-override.json");
-
-function readOverrideFile(): BrandConfig | null {
-  try {
-    return JSON.parse(fs.readFileSync(OVERRIDE_PATH, "utf-8")) as BrandConfig;
-  } catch {
-    return null;
-  }
-}
-
-function writeOverrideFile(config: BrandConfig): void {
-  try {
-    fs.writeFileSync(OVERRIDE_PATH, JSON.stringify(config, null, 2));
-  } catch {
-    // read-only filesystem (Vercel production) — in-memory cache only
-  }
-}
+// In-memory cache — good within a single serverless invocation
+// On Vercel each invocation may be a fresh cold start, so MongoDB is
+// the only true persistence layer. The cache just avoids duplicate DB
+// reads within the same request lifecycle.
+let _cache: BrandConfig | null = null;
+let _cachedAt = 0;
+const TTL_MS = 30_000;
 
 export async function getBrandConfig(): Promise<BrandConfig> {
   const now = Date.now();
-  if (global._brandCache && now - (global._brandCachedAt ?? 0) < TTL_MS) {
-    return global._brandCache;
-  }
+  if (_cache && now - _cachedAt < TTL_MS) return _cache;
 
   if (process.env.MONGODB_URI) {
     try {
       const { connectDB, BrandConfigModel } = await import("@/lib/mongodb");
       await connectDB();
-      const doc = await BrandConfigModel.findOne({ key: "brand" }).lean() as { value?: BrandConfig } | null;
+      const doc = await BrandConfigModel.findOne({ key: "brand" })
+        .maxTimeMS(4000)
+        .lean() as { value?: BrandConfig } | null;
       if (doc?.value) {
-        global._brandCache = doc.value as BrandConfig;
-        global._brandCachedAt = now;
-        return global._brandCache;
+        _cache = doc.value as BrandConfig;
+        _cachedAt = now;
+        return _cache;
       }
     } catch {
-      // MongoDB unavailable — fall through
+      // MongoDB unavailable or timed out — use default
     }
   }
 
-  // File-based fallback (local dev without MongoDB, survives restarts)
-  const fileConfig = readOverrideFile();
-  if (fileConfig) {
-    global._brandCache = fileConfig;
-    global._brandCachedAt = now;
-    return fileConfig;
-  }
-
+  // Always return a valid config — never throw
   return DEFAULT_BRAND;
 }
 
 export async function saveBrandConfig(config: BrandConfig): Promise<void> {
-  global._brandCache = config;
-  global._brandCachedAt = Date.now();
+  _cache = config;
+  _cachedAt = Date.now();
 
   if (process.env.MONGODB_URI) {
     try {
@@ -76,18 +46,13 @@ export async function saveBrandConfig(config: BrandConfig): Promise<void> {
         { key: "brand", value: config },
         { upsert: true, new: true }
       );
-      return;
     } catch {
-      // MongoDB unavailable — fall through to file
+      // MongoDB unavailable — in-memory only for this invocation
     }
   }
-
-  // Write to file so config persists across server restarts
-  writeOverrideFile(config);
 }
 
 export function clearBrandConfigCache(): void {
-  global._brandCache = null;
-  global._brandCachedAt = 0;
-  try { fs.unlinkSync(OVERRIDE_PATH); } catch { /* ignore */ }
+  _cache = null;
+  _cachedAt = 0;
 }
