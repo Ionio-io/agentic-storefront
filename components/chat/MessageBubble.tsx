@@ -109,6 +109,18 @@ export function MessageBubble({ message, onAddToCart, onTryOn }: Props) {
       )}
 
       <div className={clsx("flex flex-col gap-3", isUser ? "items-end max-w-[75%]" : "items-start max-w-[88%]")}>
+        {/* Image in user message */}
+        {isUser && message.imageBase64 && (
+          <div className="mb-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`data:image/jpeg;base64,${message.imageBase64}`}
+              alt="Uploaded image"
+              className="max-h-52 max-w-[260px] w-auto object-cover rounded-lg border border-border"
+            />
+          </div>
+        )}
+
         {/* Bubble */}
         {message.content && (
           <div

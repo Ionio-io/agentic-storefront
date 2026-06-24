@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { TOOL_DEFINITIONS, executeToolCall } from "@/lib/agent-tools";
 import { getBrandConfig } from "@/lib/brand-config";
 import { verifyUserToken, USER_COOKIE } from "@/lib/user-auth";
-import { getOccasionAgentContext } from "@/lib/occasions";
 import { Product } from "@/types";
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
@@ -20,11 +19,12 @@ interface UserPrefs {
 
 interface RichContext {
   userPrefs?: UserPrefs;
-  styleMemory?: string;       // from lib/style-memory buildProfileAgentContext()
-  behaviorContext?: string;   // from lib/behavior-tracker buildAgentContext()
+  styleMemory?: string;
+  behaviorContext?: string;
   wishlistIds?: string[];
   isGiftMode?: boolean;
   giftContext?: string;
+  productContext?: string;
 }
 
 // ─── System prompt builder ─────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ function buildSystemPrompt(
   cfg: Awaited<ReturnType<typeof getBrandConfig>>,
   ctx: RichContext
 ): string {
-  const { userPrefs, styleMemory, behaviorContext, wishlistIds, isGiftMode, giftContext } = ctx;
+  const { userPrefs, styleMemory, behaviorContext, wishlistIds, isGiftMode, giftContext, productContext } = ctx;
 
   // User profile from DB (logged-in users)
   const prefLines = userPrefs
@@ -45,9 +45,6 @@ function buildSystemPrompt(
       ].filter(Boolean).join("\n")
     : "";
 
-  // Seasonal / festival context
-  const seasonalCtx = getOccasionAgentContext();
-
   // Wishlist context
   const wishlistCtx = wishlistIds?.length
     ? `WISHLIST: Shopper has ${wishlistIds.length} saved item${wishlistIds.length === 1 ? "" : "s"} (IDs: ${wishlistIds.join(", ")}). When they mention their wishlist or ask to build outfits from saved items, call get_wishlist_products with these IDs.`
@@ -58,7 +55,7 @@ function buildSystemPrompt(
     ? `GIFT MODE ACTIVE: ${giftContext ?? "Shopper is buying for someone else."} Prioritise complete sets, statement pieces, and items with wide size availability (XS–XXL or 28–40). Suggest gift wrapping at the end naturally.`
     : "";
 
-  const contextBlock = [prefLines, styleMemory, behaviorContext, seasonalCtx, wishlistCtx, giftCtx]
+  const contextBlock = [prefLines, styleMemory, behaviorContext, wishlistCtx, giftCtx]
     .filter(Boolean)
     .join("\n\n");
 
@@ -68,7 +65,7 @@ ${cfg.agentPersona}
 
 BRAND:
 ${cfg.brandDescription}
-${contextBlock ? `\n--- SHOPPER CONTEXT ---\n${contextBlock}\n--- END CONTEXT ---\n` : ""}
+${contextBlock ? `\n--- SHOPPER CONTEXT ---\n${contextBlock}\n--- END CONTEXT ---\n` : ""}${productContext ? `\n--- ACTIVE PRODUCT PAGE ---\n${productContext}\n--- END PRODUCT ---\n\n` : ""}
 TOOL SELECTION — call tools in this priority order:
 1. search_products — any request for clothing, outfits, or styles. Always include gender, max_price, occasion, and product_type when the shopper mentions them.
 2. build_outfit — shopper wants "a complete look", "what goes with this", or outfit ideas around a specific piece.
@@ -86,8 +83,7 @@ RESPONSE RULES:
 - If an image is sent: briefly describe what you observe (style, color, occasion cues) then immediately call search_products with relevant descriptors.
 - For virtual try-on awareness: mention it naturally once per session when showing products.
 - If asked about returns, shipping, or store policies: say "For order support, please reach out to the ${cfg.name} team directly" and redirect to shopping.
-- Understand Indian fashion occasions fluently: weddings (bridal, guest), Diwali, Navratri, Eid, Holi, office formals, corporate casuals, date night, loungewear. Budget is always INR (₹).
-- When SEASONAL CONTEXT is present and the shopper's request is loosely related, naturally weave in the upcoming occasion ("With Diwali just weeks away, this would work beautifully for the festive season too").
+- Understand Indian fashion occasions fluently: weddings (bridal, guest), office formals, corporate casuals, date night, loungewear, ethnic festivals. Budget is always INR (₹).
 - Never include raw URLs, JSON, image paths, or CDN links in your text response.
 - Never start responses with filler: "Certainly", "Of course", "Sure", "Absolutely", "Great choice". Start with substance.
 - If a tool returns zero results: say so honestly and suggest broadening the search.`;
@@ -105,10 +101,11 @@ function detectGiftMode(messages: Array<{ role: string; content: string }>): { i
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { messages, imageBase64, imageQuery, styleMemory, behaviorContext, wishlistIds } = body as {
+  const { messages, imageBase64, imageQuery, productContext, styleMemory, behaviorContext, wishlistIds } = body as {
     messages: Array<{ role: string; content: string }>;
     imageBase64?: string;
     imageQuery?: string;
+    productContext?: string;
     styleMemory?: string;
     behaviorContext?: string;
     wishlistIds?: string[];
@@ -174,6 +171,7 @@ export async function POST(req: NextRequest) {
     wishlistIds,
     isGiftMode: isGift,
     giftContext,
+    productContext,
   });
 
   const encoder = new TextEncoder();

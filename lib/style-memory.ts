@@ -9,7 +9,7 @@ export interface SizeProfile {
   fitPref?: "fitted" | "regular" | "relaxed";
   height?: number; // cm
   weight?: number; // kg
-  bodyShape?: "straight" | "pear" | "athletic" | "plus" | "hourglass";
+  bodyShape?: "hourglass" | "rectangle" | "spoon" | "trapezoid" | "triangle" | "inverted" | "oval";
 }
 
 export interface StylePreferences {

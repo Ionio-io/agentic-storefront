@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { Product, CartItem } from "@/types";
 import { clsx } from "clsx";
@@ -66,12 +67,14 @@ export function ProductCard({ product, onAddToCart, onTryOn }: Props) {
         <p className="font-sans text-[9px] tracking-[0.2em] uppercase text-taupe mb-1">
           {product.product_type}
         </p>
-        <h3 className="font-sans text-xs font-500 text-dark leading-snug line-clamp-2 mb-2">
-          {product.title}
-        </h3>
-        <p className="font-display italic text-gold text-base font-400 mb-3">
-          ₹{product.price.toLocaleString("en-IN")}
-        </p>
+        <Link href={`/products/${product.handle}`} className="block group/title">
+          <h3 className="font-sans text-xs font-500 text-dark leading-snug line-clamp-2 mb-2 group-hover/title:text-dark/70 transition-colors">
+            {product.title}
+          </h3>
+          <p className="font-display italic text-gold text-base font-400 mb-3">
+            ₹{product.price.toLocaleString("en-IN")}
+          </p>
+        </Link>
 
         {/* Sizes */}
         <div className="flex flex-wrap gap-1 mb-3">

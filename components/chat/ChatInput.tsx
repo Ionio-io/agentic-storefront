@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, KeyboardEvent } from "react";
-import { ArrowRight, Camera } from "lucide-react";
+import { ArrowRight, Camera, X } from "lucide-react";
 import { clsx } from "clsx";
 
 const SUGGESTIONS = [
@@ -19,15 +19,31 @@ interface Props {
   suggestions?: string[];
 }
 
+interface PendingImage {
+  base64: string;
+  filename: string;
+  preview: string;
+}
+
 export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agentName = "your stylist", suggestions }: Props) {
   const chips = suggestions ?? SUGGESTIONS;
   const [value, setValue] = useState("");
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function submit() {
+    if (disabled) return;
+    if (pendingImage) {
+      if (!onImageSend) return;
+      onImageSend(pendingImage.base64, pendingImage.filename);
+      setPendingImage(null);
+      setValue("");
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+      return;
+    }
     const trimmed = value.trim();
-    if (!trimmed || disabled) return;
+    if (!trimmed) return;
     onSend(trimmed);
     setValue("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -52,17 +68,20 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
     if (!file || !onImageSend) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      onImageSend(base64, file.name);
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(",")[1];
+      setPendingImage({ base64, filename: file.name, preview: dataUrl });
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   }
 
+  const canSend = pendingImage !== null || value.trim().length > 0;
+
   return (
     <div className="space-y-4">
       {/* Suggestion chips */}
-      {showSuggestions && (
+      {showSuggestions && !pendingImage && (
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           {chips.map((s) => (
             <button
@@ -74,6 +93,26 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
               {s}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Image preview */}
+      {pendingImage && (
+        <div className="relative inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pendingImage.preview}
+            alt="Selected image"
+            className="h-24 w-auto max-w-[180px] object-cover border border-border rounded"
+          />
+          <button
+            onClick={() => setPendingImage(null)}
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-dark text-cream flex items-center justify-center hover:bg-warm transition-colors"
+            aria-label="Remove image"
+          >
+            <X size={10} strokeWidth={2} />
+          </button>
+          <p className="font-mono text-[9px] text-taupe mt-1 truncate max-w-[180px]">{pendingImage.filename}</p>
         </div>
       )}
 
@@ -89,7 +128,7 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
             value={value}
             onChange={(e) => { setValue(e.target.value); autoResize(); }}
             onKeyDown={handleKey}
-            placeholder={`Ask ${agentName} anything — dresses, shirts, outfit ideas…`}
+            placeholder={pendingImage ? "Add a caption or just press send…" : `Ask ${agentName} anything — dresses, shirts, outfit ideas…`}
             disabled={disabled}
             className="flex-1 resize-none outline-none font-sans text-sm text-dark placeholder:text-border bg-transparent leading-relaxed disabled:opacity-40"
             style={{ minHeight: "28px" }}
@@ -97,7 +136,7 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
 
           {/* Image upload */}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
-          {onImageSend && (
+          {onImageSend && !pendingImage && (
             <button
               onClick={() => fileRef.current?.click()}
               disabled={disabled}
@@ -110,11 +149,11 @@ export function ChatInput({ onSend, onImageSend, disabled, showSuggestions, agen
 
           <button
             onClick={submit}
-            disabled={!value.trim() || disabled}
+            disabled={!canSend || disabled}
             aria-label="Send message"
             className={clsx(
               "flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-200 mb-0.5",
-              value.trim() && !disabled
+              canSend && !disabled
                 ? "border-dark bg-dark text-gold hover:bg-charcoal"
                 : "border-border text-border cursor-not-allowed"
             )}

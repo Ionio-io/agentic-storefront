@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronRight, Sparkles, X, Send, Loader2, RefreshCw } from "lucide-react";
 import { DEMO_PRODUCTS } from "@/data/products";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
-import { FloatingChatWidget } from "@/components/storefront/FloatingChatWidget";
 import { VTOWidget } from "@/components/chat/VTOWidget";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
 import { SizePredictor } from "@/components/storefront/SizePredictor";
@@ -47,7 +46,15 @@ const FALLBACK_QUESTIONS = (product: Product) => [
 
 const CHAT_STORAGE_KEY = (productId: string) => `pdp-chat-${productId}`;
 
-function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product; onClose: () => void; onSizeSelect?: (size: string) => void }) {
+const PDP_AI_PROMPTS = [
+  "Ask AI Stylist — sizing, styling, occasions…",
+  "Does this run true to size?",
+  "What occasions is this perfect for?",
+  "What shoes pair well with this?",
+  "Build me a complete look",
+];
+
+function ProductAIDrawer({ product, onClose, onSizeSelect, initialQuery }: { product: Product; onClose: () => void; onSizeSelect?: (size: string) => void; initialQuery?: string }) {
   const [messages, setMessages] = useState<AiMsg[]>(() => {
     try {
       const saved = localStorage.getItem(CHAT_STORAGE_KEY(product.id));
@@ -59,8 +66,8 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
   const [aiQuestions, setAiQuestions] = useState<string[]>([]);
   const [aiAnswers, setAiAnswers] = useState<string[]>([]);
   const [showSizePredictorInDrawer, setShowSizePredictorInDrawer] = useState(false);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
@@ -72,6 +79,14 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
       localStorage.setItem(CHAT_STORAGE_KEY(product.id), JSON.stringify(messages));
     } catch { /* storage full — ignore */ }
   }, [messages, product.id]);
+
+  // Auto-send initialQuery when drawer opens with a pre-filled query
+  useEffect(() => {
+    if (!initialQuery) return;
+    const t = setTimeout(() => send(initialQuery), 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function clearHistory() {
     localStorage.removeItem(CHAT_STORAGE_KEY(product.id));
@@ -104,7 +119,20 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
 
   const quickQuestions = aiQuestions.length > 0 ? aiQuestions : FALLBACK_QUESTIONS(product);
 
-  const systemSeed = `The shopper is viewing: "${product.title}" by ${product.vendor} (product_id: "${product.id}"), ₹${product.price.toLocaleString("en-IN")}. Category: ${product.product_type}. Sizes: ${product.sizes.join(", ")}. Gender: ${product.gender === "female" ? "Women" : "Men"}. If asked to build a look or find complementary pieces, call build_outfit with base_product_id: "${product.id}".`;
+  const systemSeed = `PRODUCT PAGE CONTEXT — the shopper is currently viewing this specific product:
+Title: ${product.title}
+Brand: ${product.vendor}
+Product ID: ${product.id}
+Price: ₹${product.price.toLocaleString("en-IN")}
+Category: ${product.product_type}
+Gender: ${product.gender === "female" ? "Women" : "Men"}
+Available sizes: ${product.sizes.join(", ")}
+Description: ${product.description}
+Tags: ${product.tags.join(", ")}
+
+GENDER RESTRICTION: This is a ${product.gender === "female" ? "women's" : "men's"} product page. ONLY suggest ${product.gender === "female" ? "women's" : "men's"} products when recommending complementary items or building outfits. Do NOT suggest or reference ${product.gender === "female" ? "men's" : "women's"} products under any circumstances.
+
+Answer questions about THIS product specifically. For sizing questions, use the available sizes listed above. To build a complete outfit around this product call build_outfit with base_product_id: "${product.id}".`;
 
   // For pre-generated Q&A — answer instantly without hitting the agent
   function sendInstant(question: string, answer: string) {
@@ -155,16 +183,13 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
     const userMsg = (text ?? input).trim();
     if (!userMsg || loading) return;
     setInput("");
+    setFollowUpSuggestions([]);
 
     const newMessages: AiMsg[] = [...messages, { role: "user", content: userMsg }];
     setMessages(newMessages);
     setLoading(true);
 
-    const agentMessages = [
-      { role: "user", content: systemSeed },
-      { role: "assistant", content: `I can see you're looking at the ${product.title}. What would you like to know?` },
-      ...newMessages.map((m) => ({ role: m.role, content: m.content })),
-    ];
+    const agentMessages = newMessages.map((m) => ({ role: m.role, content: m.content }));
 
     // Attach wishlist IDs and session context
     const localProfile = getLocalProfile();
@@ -177,7 +202,7 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
       const resp = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: agentMessages, wishlistIds, styleMemory, behaviorContext }),
+        body: JSON.stringify({ messages: agentMessages, productContext: systemSeed, wishlistIds, styleMemory, behaviorContext }),
       });
 
       if (!resp.body) throw new Error();
@@ -221,6 +246,18 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
           } catch { /* skip malformed */ }
         }
       }
+      if (assistantText) {
+        fetch("/api/suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userMessage: userMsg, assistantMessage: assistantText }),
+        })
+          .then((r) => r.json())
+          .then((data: { suggestions?: string[] }) => {
+            if (data.suggestions?.length) setFollowUpSuggestions(data.suggestions);
+          })
+          .catch(() => {});
+      }
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
     } finally {
@@ -231,7 +268,7 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-dark/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex flex-col bg-white w-full sm:w-[400px] h-full shadow-2xl">
+      <div className="flex flex-col bg-white w-full sm:w-[520px] h-full shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
@@ -358,6 +395,22 @@ function ProductAIDrawer({ product, onClose, onSizeSelect }: { product: Product;
           <div ref={bottomRef} />
         </div>
 
+        {/* Follow-up chips */}
+        {followUpSuggestions.length > 0 && !loading && (
+          <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 border-t border-gray-100 flex-shrink-0">
+            {followUpSuggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => send(s)}
+                className="font-sans text-[11px] text-taupe border border-gray-200 bg-white px-3 py-1.5 hover:border-gold hover:text-dark transition-all duration-150 flex items-center gap-1.5"
+              >
+                <span className="text-gold text-[9px]">✦</span>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Input */}
         <form
           onSubmit={(e) => { e.preventDefault(); send(); }}
@@ -436,11 +489,11 @@ function CompleteOutfit({ product, onOpenAI }: { product: Product; onOpenAI: () 
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-display text-2xl font-400 text-dark">Complete the Look</h2>
-            {aiDone && (
-              <p className="font-sans text-xs text-taupe mt-0.5 flex items-center gap-1">
-                <span className="text-gold">✦</span> AI-curated for this piece
-              </p>
-            )}
+            <p className="font-sans text-xs text-taupe mt-1">
+              {aiDone
+                ? <><span className="text-gold">✦</span> AI-curated pieces that pair perfectly with this item.</>
+                : "Pieces styled to go with this item — or let AI build you the perfect outfit."}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {aiDone && (
@@ -614,9 +667,47 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [aiInitialQuery, setAiInitialQuery] = useState<string | undefined>(undefined);
   const [showVTO, setShowVTO] = useState(false);
   const [showSizePredictor, setShowSizePredictor] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [pdpAiQuery, setPdpAiQuery] = useState("");
+  const [pdpBarFocused, setPdpBarFocused] = useState(false);
+  const [pdpPlaceholder, setPdpPlaceholder] = useState(PDP_AI_PROMPTS[0]);
+
+  useEffect(() => {
+    if (pdpBarFocused) return;
+    let promptIdx = 0;
+    let charIdx = PDP_AI_PROMPTS[0].length;
+    let deleting = true;
+    let tid: ReturnType<typeof setTimeout>;
+    function tick() {
+      const current = PDP_AI_PROMPTS[promptIdx];
+      if (deleting) {
+        charIdx = Math.max(0, charIdx - 1);
+        setPdpPlaceholder(current.slice(0, charIdx));
+        if (charIdx === 0) {
+          deleting = false;
+          promptIdx = (promptIdx + 1) % PDP_AI_PROMPTS.length;
+          tid = setTimeout(tick, 350);
+        } else {
+          tid = setTimeout(tick, 28);
+        }
+      } else {
+        const next = PDP_AI_PROMPTS[promptIdx];
+        charIdx = Math.min(next.length, charIdx + 1);
+        setPdpPlaceholder(next.slice(0, charIdx));
+        if (charIdx === next.length) {
+          deleting = true;
+          tid = setTimeout(tick, 2200);
+        } else {
+          tid = setTimeout(tick, 55);
+        }
+      }
+    }
+    tid = setTimeout(tick, 1200);
+    return () => clearTimeout(tid);
+  }, [pdpBarFocused]);
 
   if (!product) notFound();
 
@@ -655,6 +746,39 @@ export default function ProductDetailPage() {
   }
 
   return (
+    <>
+    <style>{`
+      @keyframes pdpShimmerSlide {
+        from { transform: translateX(-100%); opacity: 0; }
+        15% { opacity: 1; }
+        85% { opacity: 1; }
+        to { transform: translateX(250%); opacity: 0; }
+      }
+      @keyframes pdpBreathe {
+        0%, 100% { box-shadow: none; border-color: #D5D0C8; }
+        50% { box-shadow: 0 0 10px 2px rgba(201,168,76,0.13); border-color: rgba(201,168,76,0.45); }
+      }
+      .ai-pdp-bar {
+        border: 1px solid #D5D0C8;
+        position: relative;
+        overflow: hidden;
+        animation: pdpBreathe 3.2s ease-in-out 1.5s infinite;
+        transition: border-color 0.25s;
+      }
+      .ai-pdp-bar:focus-within {
+        border-color: #C9A84C;
+        box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+        animation: none;
+        transition: none;
+      }
+      .ai-pdp-shimmer {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.11) 50%, transparent 100%);
+        animation: pdpShimmerSlide 1.1s ease-out 0.4s both;
+        pointer-events: none;
+      }
+    `}</style>
     <div className="min-h-screen bg-white">
       <StorefrontHeader />
 
@@ -778,14 +902,35 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            {/* AI Stylist CTA */}
-            <button
-              onClick={() => setShowAI(true)}
-              className="w-full font-sans text-xs tracking-[0.1em] uppercase py-4 border border-dark text-dark hover:bg-dark hover:text-cream transition-all duration-200 flex items-center justify-center gap-2 mb-7"
+            {/* AI Stylist inline search */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setAiInitialQuery(pdpAiQuery.trim() || undefined);
+                setShowAI(true);
+              }}
+              className="mb-7 ai-pdp-bar flex items-center bg-white"
             >
-              <Sparkles size={13} strokeWidth={1.5} />
-              Ask AI Stylist
-            </button>
+              <span aria-hidden="true" className="ai-pdp-shimmer" />
+              <span className="pl-4 pr-2 text-gold text-sm flex-shrink-0 select-none">
+                <Sparkles size={13} strokeWidth={1.5} />
+              </span>
+              <input
+                type="text"
+                value={pdpAiQuery}
+                onChange={(e) => setPdpAiQuery(e.target.value)}
+                onFocus={() => setPdpBarFocused(true)}
+                onBlur={() => setPdpBarFocused(false)}
+                placeholder={pdpPlaceholder}
+                className="flex-1 font-sans text-sm text-dark placeholder:text-gray-300 outline-none bg-transparent py-3.5 pr-2"
+              />
+              <button
+                type="submit"
+                className="flex-shrink-0 m-1.5 px-4 py-2 bg-dark text-cream font-sans text-[10px] tracking-[0.15em] uppercase hover:bg-warm transition-colors"
+              >
+                Ask
+              </button>
+            </form>
 
             {/* Product meta */}
             <div className="border-t border-gray-100 pt-5 space-y-2.5">
@@ -815,8 +960,9 @@ export default function ProductDetailPage() {
       {showAI && (
         <ProductAIDrawer
           product={product}
-          onClose={() => setShowAI(false)}
+          onClose={() => { setShowAI(false); setAiInitialQuery(undefined); }}
           onSizeSelect={(size) => { setSelectedSize(size); setShowAI(false); }}
+          initialQuery={aiInitialQuery}
         />
       )}
 
@@ -841,7 +987,7 @@ export default function ProductDetailPage() {
         />
       )}
 
-      <FloatingChatWidget />
     </div>
+    </>
   );
 }

@@ -18,12 +18,19 @@ interface Props {
   onClose: () => void;
 }
 
-const BODY_SHAPES = [
-  { value: "straight", label: "Straight", desc: "Bust, waist, hips roughly equal" },
-  { value: "pear", label: "Pear", desc: "Hips wider than bust" },
-  { value: "hourglass", label: "Hourglass", desc: "Bust and hips equal, defined waist" },
-  { value: "athletic", label: "Athletic", desc: "Broad shoulders, narrow hips" },
-  { value: "plus", label: "Plus", desc: "Fuller figure throughout" },
+const FEMALE_SHAPES = [
+  { value: "hourglass",  label: "Hourglass",  desc: "Equal bust and hips, defined waist",   img: "/body-shapes/F-HG_S4.png"   },
+  { value: "rectangle",  label: "Rectangle",  desc: "Bust, waist and hips roughly equal",   img: "/body-shapes/F-REC_S4.png"  },
+  { value: "spoon",      label: "Spoon",      desc: "Hips noticeably wider than bust",       img: "/body-shapes/F-SPO_S4.png"  },
+  { value: "trapezoid",  label: "Trapezoid",  desc: "Broader shoulders, defined waist",      img: "/body-shapes/F-TRAP_S4.png" },
+] as const;
+
+const MALE_SHAPES = [
+  { value: "rectangle",  label: "Rectangle",  desc: "Shoulders and hips roughly equal",      img: "/body-shapes/M-REC_S4.png"  },
+  { value: "triangle",   label: "Triangle",   desc: "Hips wider than shoulders",             img: "/body-shapes/M-TRI_S4.png"  },
+  { value: "trapezoid",  label: "Trapezoid",  desc: "Broad shoulders, average waist",        img: "/body-shapes/M-TRAP_S4.png" },
+  { value: "inverted",   label: "Inverted",   desc: "V-shape: broad shoulders, narrow hips", img: "/body-shapes/M-INV_S4.png"  },
+  { value: "oval",       label: "Oval",       desc: "Rounded, fuller midsection",            img: "/body-shapes/M-OVL_S4.png"  },
 ] as const;
 
 const FIT_PREFS = [
@@ -37,9 +44,11 @@ export function SizePredictor({ productType, gender, onSizeSelect, onClose }: Pr
   const [result, setResult] = useState<SizeResult | null>(null);
   const [error, setError] = useState("");
 
+  const shapeOptions = gender === "female" ? FEMALE_SHAPES : MALE_SHAPES;
+
   const [height, setHeight] = useState<number | "">(160);
   const [weight, setWeight] = useState<number | "">(60);
-  const [bodyShape, setBodyShape] = useState<SizeProfile["bodyShape"]>("straight");
+  const [bodyShape, setBodyShape] = useState<string>(shapeOptions[0].value);
   const [fitPref, setFitPref] = useState<SizeProfile["fitPref"]>("regular");
 
   // Load saved profile
@@ -48,9 +57,11 @@ export function SizePredictor({ productType, gender, onSizeSelect, onClose }: Pr
     if (saved?.sizeProfile) {
       if (saved.sizeProfile.height) setHeight(saved.sizeProfile.height);
       if (saved.sizeProfile.weight) setWeight(saved.sizeProfile.weight);
-      if (saved.sizeProfile.bodyShape) setBodyShape(saved.sizeProfile.bodyShape);
+      if (saved.sizeProfile.bodyShape && shapeOptions.some(s => s.value === saved.sizeProfile!.bodyShape))
+        setBodyShape(saved.sizeProfile.bodyShape);
       if (saved.sizeProfile.fitPref) setFitPref(saved.sizeProfile.fitPref);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function predict() {
@@ -81,7 +92,7 @@ export function SizePredictor({ productType, gender, onSizeSelect, onClose }: Pr
           [sizeKey]: data.size,
           height: Number(height),
           weight: Number(weight),
-          bodyShape,
+          bodyShape: bodyShape as SizeProfile["bodyShape"],
           fitPref,
         },
       });
@@ -158,25 +169,31 @@ export function SizePredictor({ productType, gender, onSizeSelect, onClose }: Pr
             {/* Body Shape */}
             <div>
               <p className="font-sans text-[10px] tracking-[0.15em] uppercase text-taupe mb-3">Body Shape</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {BODY_SHAPES.map((s) => (
+              <div className={`grid gap-2 ${gender === "female" ? "grid-cols-4" : "grid-cols-5"}`}>
+                {shapeOptions.map((s) => (
                   <button
                     key={s.value}
                     onClick={() => setBodyShape(s.value)}
-                    className={`flex flex-col items-center gap-1 py-2.5 px-1 border transition-all text-center rounded ${
+                    className={`flex flex-col items-center gap-1.5 pt-2 pb-2 px-1 border transition-all text-center rounded overflow-hidden ${
                       bodyShape === s.value
                         ? "border-dark bg-dark text-cream"
                         : "border-gray-200 hover:border-dark text-dark"
                     }`}
                     title={s.desc}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.img}
+                      alt={s.label}
+                      className="w-12 h-20 object-cover object-top"
+                    />
                     <span className="font-sans text-[11px] leading-tight">{s.label}</span>
                   </button>
                 ))}
               </div>
               {bodyShape && (
                 <p className="font-sans text-[11px] text-taupe mt-2">
-                  {BODY_SHAPES.find((s) => s.value === bodyShape)?.desc}
+                  {shapeOptions.find((s) => s.value === bodyShape)?.desc}
                 </p>
               )}
             </div>

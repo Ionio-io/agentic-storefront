@@ -27,6 +27,7 @@ export interface Message {
   content: string;
   products?: Product[];
   vtoResult?: string;
+  imageBase64?: string;
   timestamp: Date;
 }
 

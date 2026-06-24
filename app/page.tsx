@@ -1,11 +1,10 @@
 "use client";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DEMO_PRODUCTS } from "@/data/products";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
-import { FloatingChatWidget } from "@/components/storefront/FloatingChatWidget";
-import { SeasonalBanner } from "@/components/storefront/SeasonalBanner";
-import { AIFeaturesShowcase } from "@/components/storefront/AIFeaturesShowcase";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
 import { useBrand } from "@/lib/brand-context";
 
@@ -38,7 +37,6 @@ const CATEGORIES = [
 
 const FEATURED = DEMO_PRODUCTS.slice(0, 8);
 
-// NEW / SALE badge map by index in FEATURED array
 const FEATURED_BADGES: Record<number, "NEW" | "SALE"> = {
   0: "NEW",
   2: "SALE",
@@ -47,8 +45,66 @@ const FEATURED_BADGES: Record<number, "NEW" | "SALE"> = {
   7: "NEW",
 };
 
+const PROMPT_CHIPS = [
+  "Ethnic kurta for women under ₹1500",
+  "Office formal for men",
+  "Party dress under ₹2000",
+  "Casual summer tops for women",
+  "Complete outfit for a wedding",
+];
+
 export default function HomePage() {
   const brand = useBrand();
+  const router = useRouter();
+  const [aiQuery, setAiQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [placeholder, setPlaceholder] = useState(PROMPT_CHIPS[0]);
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (isFocused) return;
+    let promptIdx = 0;
+    let charIdx = PROMPT_CHIPS[0].length;
+    let deleting = true;
+    let tid: ReturnType<typeof setTimeout>;
+    function tick() {
+      const current = PROMPT_CHIPS[promptIdx];
+      if (deleting) {
+        charIdx = Math.max(0, charIdx - 1);
+        setPlaceholder(current.slice(0, charIdx));
+        if (charIdx === 0) {
+          deleting = false;
+          promptIdx = (promptIdx + 1) % PROMPT_CHIPS.length;
+          tid = setTimeout(tick, 350);
+        } else {
+          tid = setTimeout(tick, 28);
+        }
+      } else {
+        const next = PROMPT_CHIPS[promptIdx];
+        charIdx = Math.min(next.length, charIdx + 1);
+        setPlaceholder(next.slice(0, charIdx));
+        if (charIdx === next.length) {
+          deleting = true;
+          tid = setTimeout(tick, 2200);
+        } else {
+          tid = setTimeout(tick, 55);
+        }
+      }
+    }
+    tid = setTimeout(tick, 1200);
+    return () => clearTimeout(tid);
+  }, [isFocused]);
+
+  function goToChat(query: string) {
+    if (!query.trim()) return;
+    router.push(`/chat?q=${encodeURIComponent(query.trim())}`);
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    goToChat(aiQuery);
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <style>{`
@@ -71,14 +127,43 @@ export default function HomePage() {
         .hero-img-1  { animation: heroFadeIn 0.9s ease-out both; animation-delay: 250ms; }
         .hero-img-2  { animation: heroFadeIn 0.9s ease-out both; animation-delay: 400ms; }
         .hero-img-3  { animation: heroFadeIn 0.9s ease-out both; animation-delay: 520ms; }
+        @keyframes shimmerSlide {
+          from { transform: translateX(-100%); opacity: 0; }
+          15% { opacity: 1; }
+          85% { opacity: 1; }
+          to { transform: translateX(250%); opacity: 0; }
+        }
+        @keyframes breatheGlow {
+          0%, 100% { box-shadow: none; }
+          50% { box-shadow: 0 0 12px 2px rgba(201,168,76,0.14); }
+        }
+        .ai-search-box {
+          border: 1px solid #E5E0D8;
+          position: relative;
+          overflow: hidden;
+          animation: breatheGlow 3.2s ease-in-out 2s infinite;
+          transition: border-color 0.25s;
+        }
+        .ai-search-box:focus-within {
+          border-color: #C9A84C;
+          box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+          animation: none;
+          transition: none;
+        }
+        .ai-shimmer {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.11) 50%, transparent 100%);
+          animation: shimmerSlide 1.1s ease-out 0.6s both;
+          pointer-events: none;
+        }
       `}</style>
 
       <StorefrontHeader />
-      <SeasonalBanner />
 
       {/* Hero */}
       <section className="relative bg-[#F7F4F0] overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-6">
           <div className="grid lg:grid-cols-2 gap-0 min-h-[440px]">
 
             {/* Text */}
@@ -92,21 +177,52 @@ export default function HomePage() {
                 itself.
               </h1>
               <p className="hero-text-3 font-sans text-sm text-taupe leading-relaxed max-w-xs mt-4 mb-6">
-                Discover the latest from {brand.name} — ethnic sets, western wear, and everything in between. Browse freely or let our AI stylist curate your look.
+                Discover the latest from {brand.name} — ethnic sets, western wear, and everything in between.
               </p>
-              <div className="hero-text-4 flex flex-wrap gap-3">
+
+              {/* AI Search input */}
+              <div className="hero-text-4 flex flex-col gap-4">
                 <Link
                   href="/shop"
-                  className="inline-flex items-center gap-2 bg-dark text-cream font-sans text-xs tracking-[0.15em] uppercase px-6 py-3 hover:bg-warm transition-colors duration-200"
+                  className="inline-flex items-center gap-2 bg-dark text-cream font-sans text-xs tracking-[0.15em] uppercase px-6 py-3 hover:bg-warm transition-colors duration-200 w-fit"
                 >
                   Shop Now <ArrowRight size={13} strokeWidth={1.5} />
                 </Link>
-                <Link
-                  href="/chat"
-                  className="inline-flex items-center gap-2 border border-dark text-dark font-sans text-xs tracking-[0.15em] uppercase px-6 py-3 hover:bg-dark hover:text-cream transition-all duration-200"
-                >
-                  ✦ Ask AI Stylist
-                </Link>
+
+                <form onSubmit={handleSearchSubmit} className="ai-search-box flex items-center bg-white max-w-sm">
+                  <span aria-hidden="true" className="ai-shimmer" />
+                  <span className="pl-4 pr-2 text-gold text-sm flex-shrink-0 select-none">✦</span>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder={placeholder}
+                    className="flex-1 font-sans text-sm text-dark placeholder:text-gray-300 outline-none bg-transparent py-3 pr-2"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!aiQuery.trim()}
+                    className="flex-shrink-0 m-1.5 w-8 h-8 bg-dark text-gold flex items-center justify-center hover:bg-warm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ArrowRight size={13} strokeWidth={1.5} />
+                  </button>
+                </form>
+
+                {/* Prompt chips */}
+                <div className="flex flex-wrap gap-2 max-w-sm">
+                  {PROMPT_CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      onClick={() => goToChat(chip)}
+                      className="font-sans text-[11px] text-taupe border border-gray-200 px-3 py-1.5 hover:border-dark hover:text-dark hover:bg-gray-50 transition-all duration-150"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -145,7 +261,7 @@ export default function HomePage() {
       </section>
 
       {/* Category tiles */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-6 py-14">
         <div className="flex items-center justify-between mb-8">
           <h2 className="font-display text-2xl font-400 text-dark">Shop by Category</h2>
           <Link href="/shop" className="font-sans text-xs tracking-[0.12em] uppercase text-taupe hover:text-dark transition-colors flex items-center gap-1.5">
@@ -177,7 +293,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-6 py-8 pb-16">
         <div className="flex items-center justify-between mb-8">
           <h2 className="font-display text-2xl font-400 text-dark">Featured Products</h2>
           <Link href="/shop" className="font-sans text-xs tracking-[0.12em] uppercase text-taupe hover:text-dark transition-colors flex items-center gap-1.5">
@@ -232,52 +348,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI Feature strip */}
-      <section className="bg-dark py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-gold/70 mb-4">AI-Powered Shopping</p>
-          <h2 className="font-display text-3xl sm:text-4xl font-300 text-cream mb-3">
-            Your personal <span className="italic">AI stylist</span> is here
-          </h2>
-          <p className="font-sans text-sm text-cream/50 max-w-md mx-auto mb-8 leading-relaxed">
-            Describe what you need — occasion, budget, vibe — and our AI finds the perfect pieces. Try them on virtually before you buy.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/chat"
-              className="inline-flex items-center gap-2 bg-gold text-dark font-sans text-xs tracking-[0.15em] uppercase px-7 py-3.5 hover:bg-gold/90 transition-colors duration-200"
-            >
-              ✦ Start Styling
-            </Link>
-            <Link
-              href="/shop"
-              className="inline-flex items-center gap-2 border border-cream/20 text-cream font-sans text-xs tracking-[0.15em] uppercase px-7 py-3.5 hover:bg-white/10 transition-colors duration-200"
-            >
-              Browse Catalog
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px mt-16 border-t border-white/10 pt-12">
-            {[
-              { icon: "✦", title: "Natural Language Search", desc: "Say \"a blue dress for a beach wedding under ₹2000\" — AI finds it instantly." },
-              { icon: "◎", title: "Virtual Try-On", desc: "Upload your photo and see any garment on you before buying." },
-              { icon: "◈", title: "Outfit Building", desc: "Ask for a complete look and AI curates top, bottom, and accessories." },
-            ].map((f) => (
-              <div key={f.title} className="py-8 px-6 text-center">
-                <div className="text-gold text-xl mb-3">{f.icon}</div>
-                <p className="font-display text-cream text-base italic mb-2">{f.title}</p>
-                <p className="font-sans text-cream/40 text-xs leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <AIFeaturesShowcase />
-
       <footer className="border-t border-gray-100 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-6 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
             <div>
               <p className="font-display text-dark text-base mb-4">{brand.name}</p>
@@ -309,13 +382,10 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="font-sans text-[11px] text-taupe">© 2025 {brand.name}. All rights reserved.</p>
-            <p className="font-sans text-[11px] text-taupe">Built with Next.js · AI by OpenRouter · Try-On by fal.ai</p>
+            <p className="font-sans text-[11px] text-taupe">© 2025 Ionio. All rights reserved.</p>
           </div>
         </div>
       </footer>
-
-      <FloatingChatWidget />
     </div>
   );
 }

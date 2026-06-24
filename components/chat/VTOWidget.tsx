@@ -65,7 +65,7 @@ export function VTOWidget({ product, onClose }: Props) {
                 Virtual Try-On
               </h2>
               <p className="font-sans text-[10px] tracking-[0.15em] uppercase text-taupe">
-                Powered by fal.ai · Nano Banana 2
+                AI Virtual Try-On
               </p>
             </div>
           </div>

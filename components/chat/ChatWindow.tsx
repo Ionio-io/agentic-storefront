@@ -8,7 +8,6 @@ import { MessageBubble, TypingIndicator } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { VTOWidget } from "./VTOWidget";
 import { CartDrawer } from "./CartDrawer";
-import { getPrimaryOccasion, getDaysUntil } from "@/lib/occasions";
 
 interface Props {
   initialQuery?: string;
@@ -17,45 +16,45 @@ interface Props {
   brandName?: string;
 }
 
+function generateSuggestions(text: string, hasProducts: boolean): string[] {
+  const t = text.toLowerCase();
+  if (hasProducts)
+    return ["Show more like these", "Help me find my size", "Build a complete outfit"];
+  if (/wedding|bridal|shaadi/.test(t))
+    return ["Show guest outfits", "Add accessories", "Different budget?"];
+  if (/diwali|navratri|festival|eid|holi/.test(t))
+    return ["More festive options", "Complete the look", "Matching accessories"];
+  if (/office|formal|work|corporate/.test(t))
+    return ["More formal options", "Casual alternatives", "Under ₹1500?"];
+  if (/ethnic|kurta|salwar|suit/.test(t))
+    return ["Show matching bottoms", "Western fusion look", "Add a dupatta?"];
+  if (/casual|everyday|lounge|summer/.test(t))
+    return ["Something more dressy?", "Different colour?", "Under ₹1000?"];
+  if (/party|date|night out/.test(t))
+    return ["Complete the look", "Add accessories", "Different style?"];
+  if (/size|fit|measurement/.test(t))
+    return ["Show similar in my size", "Different cut?", "Show more options"];
+  return ["Show more options", "Complete the look", "Filter by budget"];
+}
+
 export function ChatWindow({
   initialQuery,
   agentName = "Aria",
-  welcomeMessage = "Good to have you here. I'm Aria — your Westside stylist. Tell me what you're looking for today: an occasion, a mood, a budget, or just browse.",
+  welcomeMessage,
   brandName = "Westside",
 }: Props) {
-  // Build two-message greeting: base intro + optional festival nudge
-  const primaryOccasion = getPrimaryOccasion();
+  const resolvedWelcome = welcomeMessage || `Hi! I'm ${agentName}, your personal AI stylist. Tell me what you're looking for — an occasion, a budget, a vibe — and I'll find the perfect pieces for you. Or pick one of the prompts below to get started.`;
 
   const baseGreeting: Message = {
     id: "greeting",
     role: "assistant",
-    content: welcomeMessage,
+    content: resolvedWelcome,
     timestamp: new Date(),
   };
 
-  const occasionGreeting: Message | null = primaryOccasion
-    ? (() => {
-        const days = getDaysUntil(primaryOccasion);
-        const daysText = days === 0 ? "today!" : days === 1 ? "tomorrow!" : `in ${days} days.`;
-        return {
-          id: "occasion",
-          role: "assistant" as const,
-          content: `${primaryOccasion.emoji} By the way — ${primaryOccasion.name} is ${daysText} Looking for the perfect festive outfit? Just ask me!`,
-          timestamp: new Date(),
-        };
-      })()
-    : null;
+  const baseMessages: Message[] = [baseGreeting];
 
-  const baseMessages: Message[] = [baseGreeting, ...(occasionGreeting ? [occasionGreeting] : [])];
-
-  const occasionSuggestions: string[] | undefined = primaryOccasion
-    ? [
-        `What to wear for ${primaryOccasion.name}?`,
-        `Show me ${primaryOccasion.name} outfits under ₹2000`,
-        "Casual western outfit for women",
-        "Office look for men under ₹3000",
-      ]
-    : undefined;
+  const occasionSuggestions = undefined;
 
   const router = useRouter();
   const baseMessagesRef = useRef<Message[]>(baseMessages);
@@ -65,6 +64,7 @@ export function ChatWindow({
   const [cartOpen, setCartOpen] = useState(false);
   const [vtoProduct, setVtoProduct] = useState<Product | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const initialQueryRef = useRef(initialQuery);
@@ -83,10 +83,11 @@ export function ChatWindow({
       .then((r) => r.json())
       .then((data) => {
         if (data.messages?.length > 0) {
-          const loaded: Message[] = data.messages.map((m: { role: string; content: string; timestamp?: string }) => ({
+          const loaded: Message[] = data.messages.map((m: { role: string; content: string; timestamp?: string; products?: Product[] }) => ({
             id: uuidv4(),
             role: m.role as "user" | "assistant",
             content: m.content,
+            products: m.products ?? [],
             timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
           }));
           setMessages([...baseMessagesRef.current, ...loaded]);
@@ -107,7 +108,7 @@ export function ChatWindow({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: nonGreeting.map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp })),
+          messages: nonGreeting.map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp, products: m.products ?? [] })),
         }),
       }).catch(() => {});
     }, 2000);
@@ -160,11 +161,13 @@ export function ChatWindow({
 
   const sendMessage = useCallback(async (text: string, imageBase64?: string) => {
     if (thinking) return;
+    setFollowUpSuggestions([]);
 
     const userMsg: Message = {
       id: uuidv4(),
       role: "user",
-      content: imageBase64 ? `🖼️ ${text || "Find similar products"}` : text,
+      content: imageBase64 ? (text || "Find similar products") : text,
+      imageBase64: imageBase64,
       timestamp: new Date(),
     };
     const assistantId = uuidv4();
@@ -201,6 +204,8 @@ export function ChatWindow({
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
+      let accText = "";
+      let accProducts: Product[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -219,6 +224,7 @@ export function ChatWindow({
           try { event = JSON.parse(raw); } catch { continue; }
 
           if (event.type === "text" && event.content) {
+            accText += event.content;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId
@@ -229,6 +235,7 @@ export function ChatWindow({
           }
 
           if (event.type === "products" && event.products?.length) {
+            accProducts = [...accProducts, ...(event.products ?? [])];
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId
@@ -246,6 +253,21 @@ export function ChatWindow({
             );
           }
         }
+      }
+
+      if (accText) {
+        fetch("/api/suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userMessage: text, assistantMessage: accText }),
+        })
+          .then((r) => r.json())
+          .then((data: { suggestions?: string[] }) => {
+            if (data.suggestions?.length) setFollowUpSuggestions(data.suggestions);
+          })
+          .catch(() => {
+            setFollowUpSuggestions(generateSuggestions(accText, accProducts.length > 0));
+          });
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
@@ -357,7 +379,21 @@ export function ChatWindow({
 
       {/* Input */}
       <div className="bg-cream border-t border-border/60 flex-shrink-0">
-        <div className="max-w-2xl mx-auto px-4 md:px-6 py-5">
+        <div className="max-w-2xl mx-auto px-4 md:px-6 pt-4 pb-5">
+          {followUpSuggestions.length > 0 && !thinking && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {followUpSuggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => sendMessage(s)}
+                  className="font-sans text-[11px] text-taupe border border-border bg-white px-3 py-1.5 hover:border-gold hover:text-dark transition-all duration-150 flex items-center gap-1.5"
+                >
+                  <span className="text-gold text-[9px]">✦</span>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
           <ChatInput
             onSend={sendMessage}
             onImageSend={handleImageSend}
