@@ -7,6 +7,7 @@ import { FloatingChatWidget } from "@/components/storefront/FloatingChatWidget";
 import { SeasonalBanner } from "@/components/storefront/SeasonalBanner";
 import { AIFeaturesShowcase } from "@/components/storefront/AIFeaturesShowcase";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
+import { useBrand } from "@/lib/brand-context";
 
 const CATEGORIES = [
   {
@@ -47,6 +48,7 @@ const FEATURED_BADGES: Record<number, "NEW" | "SALE"> = {
 };
 
 export default function HomePage() {
+  const brand = useBrand();
   return (
     <div className="min-h-screen bg-white">
       <style>{`
@@ -90,7 +92,7 @@ export default function HomePage() {
                 itself.
               </h1>
               <p className="hero-text-3 font-sans text-sm text-taupe leading-relaxed max-w-xs mt-4 mb-6">
-                Discover the latest from Westside — ethnic sets, western wear, and everything in between. Browse freely or let our AI stylist curate your look.
+                Discover the latest from {brand.name} — ethnic sets, western wear, and everything in between. Browse freely or let our AI stylist curate your look.
               </p>
               <div className="hero-text-4 flex flex-wrap gap-3">
                 <Link
@@ -278,8 +280,8 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
             <div>
-              <p className="font-display text-dark text-base mb-4">Westside</p>
-              <p className="font-sans text-xs text-taupe leading-relaxed">India&apos;s beloved fashion brand. Part of the Tata Group.</p>
+              <p className="font-display text-dark text-base mb-4">{brand.name}</p>
+              <p className="font-sans text-xs text-taupe leading-relaxed">{brand.tagline}</p>
             </div>
             <div>
               <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Shop</p>
@@ -307,7 +309,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="font-sans text-[11px] text-taupe">© 2025 Westside. All rights reserved.</p>
+            <p className="font-sans text-[11px] text-taupe">© 2025 {brand.name}. All rights reserved.</p>
             <p className="font-sans text-[11px] text-taupe">Built with Next.js · AI by OpenRouter · Try-On by fal.ai</p>
           </div>
         </div>

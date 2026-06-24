@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Package, MessageCircle, X, ShoppingBag, Heart } from "lucide-react";
 import { useWishlistCount } from "@/components/storefront/WishlistButton";
+import { useBrand } from "@/lib/brand-context";
 
 const NAV_LINKS = [
   { label: "Women", href: "/shop?gender=female" },
@@ -16,6 +17,7 @@ export function StorefrontHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const wishlistCount = useWishlistCount();
+  const brand = useBrand();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -43,7 +45,7 @@ export function StorefrontHeader() {
 
               {/* Logo */}
               <Link href="/" className="font-display text-lg font-600 tracking-widest text-dark uppercase flex-shrink-0">
-                Westside
+                {brand.name}
               </Link>
 
               {/* Center nav */}

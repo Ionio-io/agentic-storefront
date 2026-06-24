@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { DEFAULT_BRAND } from "@/data/brand";
+import { BrandProvider } from "@/lib/brand-context";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${cormorant.variable} ${dmSans.variable} ${dmMono.variable}`}>
-      <body>{children}</body>
+      <body><BrandProvider>{children}</BrandProvider></body>
     </html>
   );
 }
