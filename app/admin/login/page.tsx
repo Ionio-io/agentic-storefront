@@ -3,22 +3,20 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// Inner component uses useSearchParams — must be inside <Suspense>
 function LoginContent() {
-  const router      = useRouter();
-  const params      = useSearchParams();
-  const from        = params.get("from") ?? "/admin";
+  const router  = useRouter();
+  const params  = useSearchParams();
+  const from    = params.get("from") ?? "/admin";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [status, setStatus]     = useState<"idle" | "loading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [phase, setPhase]       = useState(0); // 0=hidden 1=diamond 2=content 3=form
+  const [phase, setPhase]       = useState(0);
   const userRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Staggered entrance
     const t1 = setTimeout(() => setPhase(1), 80);
     const t2 = setTimeout(() => setPhase(2), 900);
     const t3 = setTimeout(() => { setPhase(3); userRef.current?.focus(); }, 1400);
@@ -59,31 +57,32 @@ function LoginContent() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --void:    #060508;
-          --deep:    #0A090D;
-          --well:    #100F14;
-          --rim:     #1E1C24;
-          --dim:     #38354A;
-          --silver:  #7A7890;
-          --mist:    #A8A6B8;
-          --snow:    #EEECf4;
-          --gold:    #C8A96A;
-          --gold2:   #9A7A3A;
-          --gold-bg: rgba(200,169,106,0.06);
-          --red:     #CC4444;
+          --bg:      #FFFFFF;
+          --panel:   #F7F4F0;
+          --surface: #FAFAF8;
+          --border:  #E8E3DC;
+          --border2: #D4CEC6;
+          --dim:     #A89E92;
+          --muted:   #7A7268;
+          --body:    #3D3830;
+          --dark:    #0D0B08;
+          --gold:    #B8963E;
+          --gold2:   #C9A84C;
+          --gold-bg: rgba(184,150,62,0.06);
+          --red:     #C04040;
         }
 
-        body { background: var(--void); }
+        body { background: var(--bg); }
 
         .lr {
           min-height: 100vh;
           display: flex;
-          background: var(--void);
+          background: var(--bg);
           font-family: 'Josefin Sans', system-ui, sans-serif;
           overflow: hidden;
         }
 
-        /* ──────────────── LEFT PANEL ──────────────── */
+        /* ── LEFT PANEL ── */
         .lr-left {
           flex: 0 0 52%;
           display: flex;
@@ -91,58 +90,45 @@ function LoginContent() {
           align-items: center;
           justify-content: center;
           position: relative;
-          background: var(--deep);
+          background: var(--panel);
           overflow: hidden;
           padding: 3rem;
         }
 
-        /* Subtle grid of tiny crosshairs */
         .lr-left::before {
           content: '';
           position: absolute;
           inset: 0;
-          background-image:
-            radial-gradient(circle, rgba(200,169,106,0.12) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(184,150,62,0.10) 1px, transparent 1px);
           background-size: 44px 44px;
           pointer-events: none;
-          opacity: 0.4;
+          opacity: 0.5;
         }
 
-        /* Vertical rule on the right edge */
         .lr-left::after {
           content: '';
           position: absolute;
-          top: 15%;
-          bottom: 15%;
-          right: 0;
+          top: 15%; bottom: 15%; right: 0;
           width: 1px;
-          background: linear-gradient(180deg, transparent, rgba(200,169,106,0.15) 30%, rgba(200,169,106,0.15) 70%, transparent);
+          background: linear-gradient(180deg, transparent, rgba(184,150,62,0.18) 30%, rgba(184,150,62,0.18) 70%, transparent);
           pointer-events: none;
         }
 
-        /* Top-left corner bracket */
         .lr-corner {
           position: absolute;
-          top: 2.5rem;
-          left: 2.5rem;
+          top: 2.5rem; left: 2.5rem;
           pointer-events: none;
         }
-
         .lr-corner-br {
-          top: auto;
-          left: auto;
-          bottom: 2.5rem;
-          right: 2.5rem;
+          top: auto; left: auto;
+          bottom: 2.5rem; right: 2.5rem;
           transform: rotate(180deg);
         }
-
         .corner-svg { display: block; }
 
-        /* Status light — top right */
         .lr-status {
           position: absolute;
-          top: 2.75rem;
-          right: 3rem;
+          top: 2.75rem; right: 3rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -154,19 +140,18 @@ function LoginContent() {
         }
 
         .status-light {
-          width: 5px;
-          height: 5px;
+          width: 5px; height: 5px;
           border-radius: 50%;
-          background: var(--gold2);
+          background: var(--gold);
           animation: blink 2.8s ease-in-out infinite;
         }
 
         @keyframes blink {
-          0%, 100% { opacity: 0.3; }
-          50%       { opacity: 1; box-shadow: 0 0 6px var(--gold); }
+          0%, 100% { opacity: 0.4; }
+          50%       { opacity: 1; box-shadow: 0 0 6px var(--gold2); }
         }
 
-        /* ── Cipher diamond ── */
+        /* ── Diamond ── */
         .cipher-wrap {
           position: relative;
           width: min(260px, 40vw);
@@ -175,92 +160,58 @@ function LoginContent() {
           opacity: 0;
           transition: opacity 0.4s ease;
         }
-
         .cipher-wrap.phase1 { opacity: 1; }
+        .cipher-svg { width: 100%; height: 100%; overflow: visible; }
 
-        .cipher-svg {
-          width: 100%;
-          height: 100%;
-          overflow: visible;
-        }
-
-        /* Outer diamond */
         .cipher-outer {
-          fill: none;
-          stroke: var(--gold);
+          fill: none; stroke: var(--gold);
           stroke-width: 0.6;
-          stroke-dasharray: 600;
-          stroke-dashoffset: 600;
+          stroke-dasharray: 600; stroke-dashoffset: 600;
         }
-
         .cipher-wrap.phase1 .cipher-outer {
           animation: drawLine 1.1s cubic-bezier(0.4,0,0.2,1) 0.1s forwards;
         }
 
-        /* Inner diamond */
         .cipher-inner {
-          fill: none;
-          stroke: rgba(200,169,106,0.2);
+          fill: none; stroke: rgba(184,150,62,0.22);
           stroke-width: 0.4;
-          stroke-dasharray: 420;
-          stroke-dashoffset: 420;
+          stroke-dasharray: 420; stroke-dashoffset: 420;
         }
-
         .cipher-wrap.phase1 .cipher-inner {
           animation: drawLine 0.9s cubic-bezier(0.4,0,0.2,1) 0.3s forwards;
         }
 
-        /* Cross lines */
         .cipher-cross {
-          stroke: rgba(200,169,106,0.15);
-          stroke-width: 0.4;
-          stroke-dasharray: 200;
-          stroke-dashoffset: 200;
+          stroke: rgba(184,150,62,0.15); stroke-width: 0.4;
+          stroke-dasharray: 200; stroke-dashoffset: 200;
         }
-
         .cipher-wrap.phase1 .cipher-cross {
           animation: drawLine 0.7s ease 0.6s forwards;
         }
 
-        /* Monogram W */
-        .cipher-w {
-          opacity: 0;
-          transition: opacity 0.6s ease;
-        }
-
+        .cipher-w { opacity: 0; transition: opacity 0.6s ease; }
         .cipher-wrap.phase1 .cipher-w {
           animation: fadeIn 0.6s ease 1s forwards;
         }
 
-        /* Arc segments at corners */
         .cipher-arc {
-          fill: none;
-          stroke: rgba(200,169,106,0.35);
+          fill: none; stroke: rgba(184,150,62,0.4);
           stroke-width: 0.6;
-          stroke-dasharray: 30;
-          stroke-dashoffset: 30;
+          stroke-dasharray: 30; stroke-dashoffset: 30;
         }
-
         .cipher-wrap.phase1 .cipher-arc {
           animation: drawLine 0.4s ease 0.8s forwards;
         }
 
-        @keyframes drawLine {
-          to { stroke-dashoffset: 0; }
-        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+        @keyframes fadeIn   { to { opacity: 1; } }
 
-        @keyframes fadeIn {
-          to { opacity: 1; }
-        }
-
-        /* ── Left text content ── */
+        /* ── Left text ── */
         .left-text {
           text-align: center;
-          opacity: 0;
-          transform: translateY(12px);
+          opacity: 0; transform: translateY(12px);
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
-
         .left-text.phase2 { opacity: 1; transform: translateY(0); }
 
         .left-wordmark {
@@ -278,380 +229,245 @@ function LoginContent() {
           font-size: clamp(1.75rem, 3.5vw, 2.5rem);
           font-weight: 400;
           font-style: italic;
-          color: var(--snow);
+          color: var(--dark);
           line-height: 1.2;
           letter-spacing: -0.01em;
         }
-
         .left-headline strong {
-          font-style: normal;
-          font-weight: 500;
-          color: var(--snow);
-          display: block;
+          font-style: normal; font-weight: 500;
+          color: var(--body); display: block;
         }
 
         .left-tag {
           margin-top: 1.25rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
+          display: flex; align-items: center; justify-content: center; gap: 0.75rem;
           font-family: 'Josefin Mono', monospace;
-          font-size: 9px;
-          letter-spacing: 0.3em;
-          text-transform: uppercase;
+          font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
           color: var(--dim);
         }
-
         .tag-rule {
-          display: inline-block;
-          width: 2rem;
-          height: 1px;
-          background: var(--gold2);
-          opacity: 0.5;
+          display: inline-block; width: 2rem; height: 1px;
+          background: var(--gold); opacity: 0.4;
         }
 
-        /* ──────────────── RIGHT PANEL ──────────────── */
+        /* ── RIGHT PANEL ── */
         .lr-right {
           flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           padding: 3rem 2rem;
-          background: var(--void);
+          background: var(--bg);
           position: relative;
         }
-
-        /* Subtle warm glow */
         .lr-right::before {
           content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at 30% 40%, rgba(200,169,106,0.03) 0%, transparent 65%);
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse at 30% 40%, rgba(184,150,62,0.04) 0%, transparent 65%);
           pointer-events: none;
         }
 
         /* ── Form wrapper ── */
         .fw {
-          width: 100%;
-          max-width: 360px;
-          opacity: 0;
-          transform: translateX(16px);
+          width: 100%; max-width: 360px;
+          opacity: 0; transform: translateX(16px);
           transition: opacity 0.55s ease, transform 0.55s ease;
         }
-
         .fw.phase3 { opacity: 1; transform: translateX(0); }
 
-        /* Form header */
         .fw-eyebrow {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
+          display: flex; align-items: center; gap: 0.6rem;
           font-family: 'Josefin Mono', monospace;
-          font-size: 9px;
-          letter-spacing: 0.35em;
-          text-transform: uppercase;
+          font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase;
           color: var(--dim);
           margin-bottom: 0.75rem;
         }
-
         .fw-eyebrow-dot {
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: var(--gold);
-          opacity: 0.7;
+          width: 4px; height: 4px; border-radius: 50%;
+          background: var(--gold); opacity: 0.8;
         }
 
         .fw-title {
           font-family: 'Playfair Display', serif;
-          font-size: 2.75rem;
-          font-weight: 400;
-          font-style: italic;
-          color: var(--snow);
-          line-height: 1;
-          margin-bottom: 0.35rem;
-          letter-spacing: -0.02em;
+          font-size: 2.75rem; font-weight: 400; font-style: italic;
+          color: var(--dark);
+          line-height: 1; margin-bottom: 0.35rem; letter-spacing: -0.02em;
         }
-
         .fw-sub {
-          font-size: 12px;
-          font-weight: 200;
-          color: var(--silver);
-          letter-spacing: 0.05em;
-          margin-bottom: 2.5rem;
+          font-size: 12px; font-weight: 300;
+          color: var(--muted); letter-spacing: 0.05em; margin-bottom: 2.5rem;
         }
 
-        /* ── Field ── */
-        .fld {
-          margin-bottom: 1.125rem;
-          position: relative;
-        }
+        /* ── Fields ── */
+        .fld { margin-bottom: 1.125rem; position: relative; }
 
         .fld-label {
           display: block;
           font-family: 'Josefin Mono', monospace;
-          font-size: 9px;
-          letter-spacing: 0.3em;
-          text-transform: uppercase;
-          color: var(--dim);
-          margin-bottom: 0.5rem;
-          transition: color 0.2s;
+          font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+          color: var(--dim); margin-bottom: 0.5rem; transition: color 0.2s;
         }
-
         .fld:focus-within .fld-label { color: var(--gold); }
 
         .fld-box {
           position: relative;
-          border: 1px solid var(--rim);
-          background: var(--well);
+          border: 1px solid var(--border);
+          background: var(--surface);
           transition: border-color 0.2s, background 0.2s;
         }
-
         .fld-box:focus-within {
           border-color: var(--gold);
-          background: var(--deep);
+          background: var(--bg);
+          box-shadow: 0 0 0 3px rgba(184,150,62,0.08);
         }
 
-        /* Animated gold corner on focus */
         .fld-box::before, .fld-box::after {
-          content: '';
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          opacity: 0;
-          transition: opacity 0.2s;
+          content: ''; position: absolute;
+          width: 6px; height: 6px; opacity: 0; transition: opacity 0.2s;
         }
-
-        .fld-box::before {
-          top: -1px; left: -1px;
-          border-top: 1px solid var(--gold);
-          border-left: 1px solid var(--gold);
-        }
-
-        .fld-box::after {
-          bottom: -1px; right: -1px;
-          border-bottom: 1px solid var(--gold);
-          border-right: 1px solid var(--gold);
-        }
-
+        .fld-box::before { top: -1px; left: -1px; border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+        .fld-box::after  { bottom: -1px; right: -1px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
         .fld-box:focus-within::before,
         .fld-box:focus-within::after { opacity: 1; }
 
         .fld-input {
-          width: 100%;
-          background: transparent;
-          border: none;
-          outline: none;
+          width: 100%; background: transparent; border: none; outline: none;
           padding: 0.875rem 2.75rem 0.875rem 1rem;
           font-family: 'Josefin Sans', system-ui, sans-serif;
-          font-size: 14px;
-          font-weight: 300;
-          letter-spacing: 0.05em;
-          color: var(--snow);
-          caret-color: var(--gold);
+          font-size: 14px; font-weight: 300; letter-spacing: 0.05em;
+          color: var(--dark); caret-color: var(--gold);
         }
-
-        .fld-input::placeholder {
-          color: var(--dim);
-          font-size: 13px;
-        }
+        .fld-input::placeholder { color: var(--border2); font-size: 13px; }
 
         .fld-eye {
-          position: absolute;
-          right: 0.875rem;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: var(--dim);
-          padding: 0.25rem;
-          line-height: 1;
-          transition: color 0.2s;
+          position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%);
+          background: none; border: none; cursor: pointer;
+          color: var(--dim); padding: 0.25rem; line-height: 1; transition: color 0.2s;
         }
-
-        .fld-eye:hover { color: var(--mist); }
+        .fld-eye:hover { color: var(--body); }
 
         /* ── Error ── */
         .fw-error {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.625rem;
+          display: flex; align-items: flex-start; gap: 0.625rem;
           padding: 0.75rem 1rem;
-          background: rgba(200,40,40,0.06);
-          border: 1px solid rgba(200,40,40,0.2);
+          background: rgba(192,64,64,0.05);
+          border: 1px solid rgba(192,64,64,0.18);
           margin-bottom: 1.125rem;
           font-family: 'Josefin Mono', monospace;
-          font-size: 10px;
-          letter-spacing: 0.04em;
-          color: #D07070;
-          line-height: 1.5;
+          font-size: 10px; letter-spacing: 0.04em;
+          color: var(--red); line-height: 1.5;
           animation: errorSlide 0.2s ease;
         }
-
         @keyframes errorSlide {
           from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-
         .fw-error svg { flex-shrink: 0; margin-top: 0.05rem; }
 
         /* ── Submit ── */
         .fw-btn {
-          width: 100%;
-          padding: 0.9rem 1.5rem;
-          background: transparent;
-          border: 1px solid var(--gold);
+          width: 100%; padding: 0.9rem 1.5rem;
+          background: var(--dark);
+          border: 1px solid var(--dark);
           cursor: pointer;
           font-family: 'Josefin Mono', monospace;
-          font-size: 10px;
-          letter-spacing: 0.4em;
-          text-transform: uppercase;
-          color: var(--gold);
-          transition: background 0.2s, color 0.2s;
+          font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase;
+          color: #FAFAF8;
+          transition: background 0.2s, color 0.2s, border-color 0.2s;
           margin-top: 0.5rem;
-          position: relative;
-          overflow: hidden;
+          position: relative; overflow: hidden;
         }
-
         .fw-btn::before {
-          content: '';
-          position: absolute;
-          inset: 0;
+          content: ''; position: absolute; inset: 0;
           background: var(--gold);
           transform: translateX(-101%);
           transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
         }
-
         .fw-btn span { position: relative; z-index: 1; }
-
         .fw-btn:hover:not(:disabled)::before { transform: translateX(0); }
-        .fw-btn:hover:not(:disabled) span { color: var(--void); }
-
-        .fw-btn:disabled {
-          opacity: 0.3;
-          cursor: not-allowed;
-        }
+        .fw-btn:hover:not(:disabled) { border-color: var(--gold); }
+        .fw-btn:hover:not(:disabled) span { color: var(--dark); }
+        .fw-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
         .btn-spinner {
-          display: inline-block;
-          width: 10px;
-          height: 10px;
-          border: 1px solid rgba(200,169,106,0.3);
-          border-top-color: var(--gold);
+          display: inline-block; width: 10px; height: 10px;
+          border: 1px solid rgba(250,250,248,0.3);
+          border-top-color: #FAFAF8;
           border-radius: 50%;
           animation: spin 0.7s linear infinite;
-          vertical-align: middle;
-          margin-right: 0.6rem;
-          position: relative;
-          z-index: 1;
+          vertical-align: middle; margin-right: 0.6rem;
+          position: relative; z-index: 1;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ── Footer ── */
         .fw-footer {
-          margin-top: 2rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid var(--rim);
-          display: flex;
-          flex-direction: column;
-          gap: 0.625rem;
+          margin-top: 2rem; padding-top: 1.5rem;
+          border-top: 1px solid var(--border);
+          display: flex; flex-direction: column; gap: 0.625rem;
         }
-
         .fw-hint {
           font-family: 'Josefin Mono', monospace;
-          font-size: 9px;
-          letter-spacing: 0.05em;
-          color: var(--dim);
-          line-height: 1.7;
+          font-size: 9px; letter-spacing: 0.05em;
+          color: var(--dim); line-height: 1.7;
         }
-
         .fw-back {
           font-family: 'Josefin Mono', monospace;
-          font-size: 9px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: var(--silver);
-          text-decoration: none;
-          transition: color 0.2s;
+          font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+          color: var(--muted); text-decoration: none; transition: color 0.2s;
         }
+        .fw-back:hover { color: var(--dark); }
 
-        .fw-back:hover { color: var(--snow); }
-
-        /* ── Mobile ── */
         @media (max-width: 760px) {
           .lr-left { display: none; }
-          .lr-right { background: var(--deep); }
+          .lr-right { background: var(--surface); }
         }
       `}</style>
 
       <div className="lr">
-        {/* ──── LEFT PANEL ──── */}
+        {/* LEFT PANEL */}
         <div className="lr-left">
-          {/* Corner brackets */}
           <div className="lr-corner">
             <svg className="corner-svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <path d="M28 1H1V28" stroke="rgba(200,169,106,0.3)" strokeWidth="0.75"/>
+              <path d="M28 1H1V28" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
           <div className="lr-corner lr-corner-br">
             <svg className="corner-svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <path d="M28 1H1V28" stroke="rgba(200,169,106,0.3)" strokeWidth="0.75"/>
+              <path d="M28 1H1V28" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
 
-          {/* Status indicator */}
           <div className="lr-status">
             <span className="status-light" />
             System online
           </div>
 
-          {/* Diamond cipher */}
           <div className={`cipher-wrap ${phase >= 1 ? "phase1" : ""}`}>
             <svg className="cipher-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Inner diamond (smaller) */}
-              <polygon
-                className="cipher-inner"
-                points="100,28 172,100 100,172 28,100"
-              />
-              {/* Outer diamond */}
-              <polygon
-                className="cipher-outer"
-                points="100,10 190,100 100,190 10,100"
-              />
-              {/* Cross lines */}
+              <polygon className="cipher-inner" points="100,28 172,100 100,172 28,100" />
+              <polygon className="cipher-outer" points="100,10 190,100 100,190 10,100" />
               <line className="cipher-cross" x1="100" y1="0" x2="100" y2="200" />
               <line className="cipher-cross" x1="0" y1="100" x2="200" y2="100" />
-              {/* Corner arc marks */}
               <path className="cipher-arc" d="M100 4 A96 96 0 0 1 118 6" />
               <path className="cipher-arc" d="M194 100 A96 96 0 0 1 192 118" />
               <path className="cipher-arc" d="M100 196 A96 96 0 0 1 82 194" />
               <path className="cipher-arc" d="M6 100 A96 96 0 0 1 8 82" />
-              {/* Monogram W */}
               <text
                 className="cipher-w"
-                x="100"
-                y="115"
+                x="100" y="115"
                 textAnchor="middle"
                 fontFamily="Playfair Display, serif"
                 fontSize="52"
                 fontStyle="italic"
                 fontWeight="400"
-                fill="rgba(200,169,106,0.85)"
-              >
-                W
-              </text>
-              {/* Tick marks */}
-              <line x1="100" y1="5" x2="100" y2="12" stroke="rgba(200,169,106,0.4)" strokeWidth="0.75"/>
-              <line x1="195" y1="100" x2="188" y2="100" stroke="rgba(200,169,106,0.4)" strokeWidth="0.75"/>
-              <line x1="100" y1="195" x2="100" y2="188" stroke="rgba(200,169,106,0.4)" strokeWidth="0.75"/>
-              <line x1="5" y1="100" x2="12" y2="100" stroke="rgba(200,169,106,0.4)" strokeWidth="0.75"/>
+                fill="rgba(184,150,62,0.7)"
+              >W</text>
+              <line x1="100" y1="5"   x2="100" y2="12"  stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+              <line x1="195" y1="100" x2="188" y2="100" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+              <line x1="100" y1="195" x2="100" y2="188" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+              <line x1="5"   y1="100" x2="12"  y2="100" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
 
-          {/* Text content */}
           <div className={`left-text ${phase >= 2 ? "phase2" : ""}`}>
             <span className="left-wordmark">Westside AI</span>
             <h1 className="left-headline">
@@ -666,7 +482,7 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* ──── RIGHT PANEL ──── */}
+        {/* RIGHT PANEL */}
         <div className="lr-right">
           <div className={`fw ${phase >= 3 ? "phase3" : ""}`}>
             <div className="fw-eyebrow">
