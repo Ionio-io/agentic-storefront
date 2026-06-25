@@ -174,7 +174,7 @@ Return ONLY this JSON (no markdown):
           "X-Title": "Westside Size Predictor",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "anthropic/claude-sonnet-4-6",
           messages: [{ role: "user", content: prompt }],
           temperature: 0,
           max_tokens: 350,

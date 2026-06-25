@@ -5,8 +5,8 @@ import { verifyUserToken, USER_COOKIE } from "@/lib/user-auth";
 import { Product } from "@/types";
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-const MODEL = "openai/gpt-4o-mini";
-const VISION_MODEL = "openai/gpt-4o-mini";
+const MODEL = "anthropic/claude-sonnet-4-6";
+const VISION_MODEL = "anthropic/claude-sonnet-4-6";
 
 // ─── Context types ─────────────────────────────────────────────────────────────
 

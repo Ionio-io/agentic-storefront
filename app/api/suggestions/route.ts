@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-const MODEL = "openai/gpt-4o-mini";
+const MODEL = "anthropic/claude-sonnet-4-6";
 
 export async function POST(req: NextRequest) {
   const { userMessage, assistantMessage } = await req.json() as {

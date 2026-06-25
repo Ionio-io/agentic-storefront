@@ -72,7 +72,7 @@ Questions should be specific to this product, not generic. No markdown, no pream
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "anthropic/claude-sonnet-4-6",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.4,
         max_tokens: 600,

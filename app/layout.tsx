@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
-import { DEFAULT_BRAND } from "@/data/brand";
+import { getBrandConfig } from "@/lib/brand-config";
 import { BrandProvider } from "@/lib/brand-context";
 
 const cormorant = Cormorant_Garamond({
@@ -26,18 +26,24 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: `${DEFAULT_BRAND.name} · AI Storefront`,
-  description: `Shop ${DEFAULT_BRAND.name} fashion with your personal AI stylist — discover, try on virtually, and buy.`,
-  openGraph: {
-    title: `${DEFAULT_BRAND.name} · AI Storefront`,
-    description: "Conversational AI shopping — describe what you want, see it on you, buy in one step.",
-    type: "website",
-  },
-  icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBrandConfig();
+  return {
+    title: {
+      default: `${brand.name} · AI Storefront`,
+      template: `%s · ${brand.name}`,
+    },
+    description: `Shop ${brand.name} fashion with your personal AI stylist — discover, try on virtually, and buy.`,
+    openGraph: {
+      title: `${brand.name} · AI Storefront`,
+      description: "Conversational AI shopping — describe what you want, see it on you, buy in one step.",
+      type: "website",
+    },
+    icons: {
+      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>",
+    },
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
