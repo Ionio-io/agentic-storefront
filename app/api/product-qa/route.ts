@@ -42,7 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ? "This is menswear. Questions about shoulder fit, sleeve length, collar, fabric breathability for Indian weather, and office vs casual use are very relevant."
     : "This is a women's western wear product. Questions about see-through fabric, length, neckline, body type suitability, and styling are very relevant.";
 
-  const prompt = `You are a knowledgeable Indian fashion stylist at ${vendor ?? "Westside"}.
+  const prompt = `You are a knowledgeable Indian fashion stylist at ${vendor ?? "this brand"}.
 
 PRODUCT:
 Name: ${title}
@@ -86,7 +86,8 @@ Questions should be specific to this product, not generic. No markdown, no pream
 
     let result: QAResult;
     try {
-      result = JSON.parse(content) as QAResult;
+      const stripped = content.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      result = JSON.parse(stripped) as QAResult;
     } catch {
       const match = content.match(/\{[\s\S]*\}/);
       if (match) {

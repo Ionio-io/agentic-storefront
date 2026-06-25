@@ -8,7 +8,7 @@ function getSecret(): string {
 export function getAdminCredentials() {
   return {
     username: process.env.ADMIN_USERNAME ?? "admin",
-    password: process.env.ADMIN_PASSWORD ?? "westside2024",
+    password: process.env.ADMIN_PASSWORD ?? "ionio2024",
   };
 }
 

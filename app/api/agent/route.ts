@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
           headers: {
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://westside-storefront.demo",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://agentic-storefront.vercel.app",
             "X-Title": `${brandConfig.name} AI Storefront`,
           },
           body: JSON.stringify({

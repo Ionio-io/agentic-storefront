@@ -407,7 +407,7 @@ export function AdminDashboard({ brand, stats, userStats, systemStatus }: Props)
               </span>
             </div>
             {[
-              { lbl: "AI Agent",       desc: "OpenRouter → gpt-4o-mini",     ok: systemStatus.hasOpenRouter, okTxt: "Connected", errTxt: "Missing OPENROUTER_API_KEY", warn: false },
+              { lbl: "AI Agent",       desc: "OpenRouter → Claude Sonnet 4.6", ok: systemStatus.hasOpenRouter, okTxt: "Connected", errTxt: "Missing OPENROUTER_API_KEY", warn: false },
               { lbl: "Virtual Try-On", desc: "fal.ai Nano Banana 2",               ok: systemStatus.hasVton,       okTxt: "Connected", errTxt: "Missing FAL_KEY",           warn: false },
               { lbl: "Database",       desc: "MongoDB · users & brand config",ok: systemStatus.hasMongo,     okTxt: "Connected", errTxt: "Optional — set MONGODB_URI", warn: true  },
             ].map((s) => (

@@ -29,7 +29,7 @@ export interface StyleProfile {
   updatedAt?: number;
 }
 
-const LS_KEY = "westsideStyleProfile";
+const LS_KEY = "agentStyleProfile";
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function getLocalProfile(): StyleProfile | null {

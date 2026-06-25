@@ -41,7 +41,7 @@ export function ChatWindow({
   initialQuery,
   agentName = "Aria",
   welcomeMessage,
-  brandName = "Westside",
+  brandName = "Ionio",
 }: Props) {
   const resolvedWelcome = welcomeMessage || `Hi! I'm ${agentName}, your personal AI stylist. Tell me what you're looking for — an occasion, a budget, a vibe — and I'll find the perfect pieces for you. Or pick one of the prompts below to get started.`;
 

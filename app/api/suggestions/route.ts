@@ -43,9 +43,10 @@ Rules:
     if (!res.ok) return NextResponse.json({ suggestions: [] });
 
     const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const content = data.choices?.[0]?.message?.content ?? "[]";
+    const raw = data.choices?.[0]?.message?.content ?? "[]";
+    const content = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
 
-    const parsed = JSON.parse(content.trim());
+    const parsed = JSON.parse(content);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return NextResponse.json({ suggestions: (parsed as string[]).slice(0, 3) });
     }

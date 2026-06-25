@@ -171,7 +171,7 @@ Return ONLY this JSON (no markdown):
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "",
-          "X-Title": "Westside Size Predictor",
+          "X-Title": "AI Size Predictor",
         },
         body: JSON.stringify({
           model: "anthropic/claude-sonnet-4-6",
@@ -183,7 +183,8 @@ Return ONLY this JSON (no markdown):
 
       if (res.ok) {
         const data = await res.json();
-        const content: string = data.choices?.[0]?.message?.content ?? "";
+        const raw: string = data.choices?.[0]?.message?.content ?? "";
+        const content = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
         const match = content.match(/\{[\s\S]*\}/);
         if (match) {
           const result = JSON.parse(match[0]) as SizeResult;

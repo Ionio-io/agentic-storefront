@@ -4,7 +4,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { getPrimaryOccasion, getDaysUntil, type Occasion } from "@/lib/occasions";
 
-const DISMISS_KEY = "westsideDismissedOccasion";
+const DISMISS_KEY = "agentDismissedOccasion";
 
 export function SeasonalBanner() {
   const [occasion, setOccasion] = useState<Occasion | null>(null);

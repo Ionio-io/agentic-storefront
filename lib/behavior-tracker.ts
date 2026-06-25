@@ -26,7 +26,7 @@ export interface SessionProfile {
   isPersonalized: boolean; // true once >= 3 signals
 }
 
-const KEY = "westsideBehavior";
+const KEY = "agentBehavior";
 
 function extractColors(product: Product): string[] {
   const colorWords = ["blue", "red", "green", "black", "white", "pink", "yellow", "purple",

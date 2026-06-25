@@ -469,7 +469,7 @@ function LoginContent() {
           </div>
 
           <div className={`left-text ${phase >= 2 ? "phase2" : ""}`}>
-            <span className="left-wordmark">Westside AI</span>
+            <span className="left-wordmark">Ionio AI</span>
             <h1 className="left-headline">
               The intelligence<br />
               <strong>behind the storefront.</strong>
@@ -572,7 +572,7 @@ function LoginContent() {
 
             <div className="fw-footer">
               <p className="fw-hint">
-                Default: admin / westside2024 &nbsp;·&nbsp; Override via env vars.
+                Default: admin / ionio2024 &nbsp;·&nbsp; Override via env vars.
               </p>
               <a href="/" className="fw-back">← Back to storefront</a>
             </div>

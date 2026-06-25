@@ -7,7 +7,7 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      // Westside / Shopify product images
+      // Shopify product images
       { protocol: "https", hostname: "cdn.shopify.com" },
       // fal.ai generated images (VTO results)
       { protocol: "https", hostname: "v3.fal.media" },
