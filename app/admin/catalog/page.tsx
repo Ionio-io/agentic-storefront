@@ -18,6 +18,11 @@ export default function CatalogPage() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [importUrl, setImportUrl] = useState("");
+  const [clearExisting, setClearExisting] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
   const fetchCatalog = (p = page, g = gender) => {
     fetch(`/api/catalog?page=${p}&limit=20&gender=${g}`)
       .then((r) => r.json())
@@ -63,6 +68,31 @@ export default function CatalogPage() {
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handleImport() {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setImportStatus("Fetching products from store…");
+    try {
+      const res = await fetch("/api/import-shopify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeUrl: importUrl.trim(), clearExisting }),
+      });
+      const data = await res.json() as { ok?: boolean; imported?: number; pages?: number; storage?: string; error?: string; note?: string };
+      if (res.ok && data.ok) {
+        setImportStatus(`✓ ${data.imported} products imported across ${data.pages} page(s) (${data.storage}). ${data.note ?? ""}`);
+        fetchCatalog(1, gender);
+        setPage(1);
+      } else {
+        setImportStatus(`Error: ${data.error}`);
+      }
+    } catch {
+      setImportStatus("Request failed. Check the URL and try again.");
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -122,6 +152,52 @@ export default function CatalogPage() {
         {uploadStatus && (
           <p className="font-mono text-xs mt-3 text-[#4A3728] max-w-lg leading-relaxed">
             {uploadStatus}
+          </p>
+        )}
+      </div>
+
+      {/* Shopify URL Importer */}
+      <div className="bg-white border border-[#D8D0C0] px-6 py-5 mb-8">
+        <p className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest mb-3">
+          Import from Shopify Store URL
+        </p>
+        <p className="font-sans text-sm text-[#6B5D4E] mb-4">
+          Paste any public Shopify store URL — the importer fetches all pages of{" "}
+          <code className="bg-[#F7F5F0] px-1">/products.json</code> automatically.
+          <br />
+          <span className="text-[#8A7560]">
+            e.g. <code className="bg-[#F7F5F0] px-1">https://kithnyc.com</code>
+          </span>
+        </p>
+        <div className="flex gap-3 items-center flex-wrap">
+          <input
+            type="url"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            placeholder="https://store.myshopify.com"
+            disabled={importing}
+            className="flex-1 min-w-[260px] border border-[#D8D0C0] font-mono text-xs px-3 py-2.5 focus:outline-none focus:border-[#C9A84C] disabled:opacity-50"
+          />
+          <button
+            onClick={handleImport}
+            disabled={importing || !importUrl.trim()}
+            className="border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest px-6 py-2.5 hover:bg-[#b8963e] transition-colors disabled:opacity-40"
+          >
+            {importing ? "Importing…" : "Import"}
+          </button>
+        </div>
+        <label className="flex items-center gap-2 mt-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={clearExisting}
+            onChange={(e) => setClearExisting(e.target.checked)}
+            className="accent-[#C9A84C]"
+          />
+          <span className="font-mono text-xs text-[#6B5D4E]">Clear existing catalog before import</span>
+        </label>
+        {importStatus && (
+          <p className="font-mono text-xs mt-3 text-[#4A3728] max-w-lg leading-relaxed">
+            {importStatus}
           </p>
         )}
       </div>
