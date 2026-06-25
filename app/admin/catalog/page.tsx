@@ -9,6 +9,9 @@ interface CatalogResponse {
   total: number;
   page: number;
   pages: number;
+  womenTotal?: number;
+  menTotal?: number;
+  newTotal?: number;
 }
 
 type Tab = "catalog" | "deadstock";
@@ -203,7 +206,7 @@ export default function CatalogPage() {
     ? previewGroups.flatMap((g) => g.types).filter((t) => selectedTypes.has(t.name)).reduce((s, t) => s + t.count, 0)
     : 0;
   const totalTypes = previewGroups?.flatMap((g) => g.types).length ?? 0;
-  const newCount = catalog?.products.filter((p) => p.is_new).length ?? 0;
+  const newCount = catalog?.newTotal ?? catalog?.products.filter((p) => p.is_new).length ?? 0;
   const allPageSelected = !!(catalog && catalog.products.length > 0 && catalog.products.every((p) => selectedIds.has(p.id)));
 
   return (
@@ -216,8 +219,8 @@ export default function CatalogPage() {
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total Products", value: catalog.total },
-            { label: "Women", value: catalog.products.filter((p) => p.gender === "female").length },
-            { label: "Men", value: catalog.products.filter((p) => p.gender === "male").length },
+            { label: "Women", value: catalog.womenTotal ?? catalog.products.filter((p) => p.gender === "female").length },
+            { label: "Men", value: catalog.menTotal ?? catalog.products.filter((p) => p.gender === "male").length },
             { label: "New Arrivals", value: newCount, highlight: newCount > 0 },
           ].map((s) => (
             <div key={s.label} className={`bg-white border px-5 py-4 ${s.highlight ? "border-[#C9A84C]" : "border-[#E4E7EC]"}`}>

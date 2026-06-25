@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const isNew     = searchParams.get("isNew") === "true";
   const sizeParam = searchParams.get("size") ?? "";
   const sortParam = searchParams.get("sort") ?? "";
+  const search    = searchParams.get("search")?.trim() ?? "";
 
   // Try MongoDB first (uploaded catalog), fall back to demo products
   if (process.env.MONGODB_URI) {
@@ -27,10 +28,19 @@ export async function GET(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const filter: Record<string, any> = {};
       if (gender !== "all") filter.gender = gender;
-      if (type) {
+
+      if (search) {
+        const re = { $regex: search, $options: "i" };
+        filter.$or = [
+          { title: re },
+          { vendor: re },
+          { product_type: re },
+          { tags: re },
+          { description: re },
+        ];
+      } else if (type) {
         filter.product_type = { $regex: type, $options: "i" };
       } else if (mainCat) {
-        // Classify all distinct product_types in DB, keep those matching mainCat
         const allTypes = await ProductModel.distinct("product_type") as string[];
         const matching = allTypes.filter((t) => classifyProduct(t).main === mainCat);
         if (matching.length > 0) {
@@ -52,21 +62,27 @@ export async function GET(req: NextRequest) {
       else if (sortParam === "price-asc") sortOrder = { price: 1 };
       else if (sortParam === "price-desc") sortOrder = { price: -1 };
 
-      const [total, products] = await Promise.all([
+      const [total, products, womenTotal, menTotal, newTotal] = await Promise.all([
         ProductModel.countDocuments(filter),
         ProductModel.find(filter)
           .sort(sortOrder)
           .skip((page - 1) * limit)
           .limit(limit)
           .lean(),
+        ProductModel.countDocuments({ gender: "female" }),
+        ProductModel.countDocuments({ gender: "male" }),
+        ProductModel.countDocuments({ is_new: true }),
       ]);
 
-      if (total > 0) {
+      if (total > 0 || search) {
         return NextResponse.json({
           products,
           total,
           page,
           pages: Math.ceil(total / limit),
+          womenTotal,
+          menTotal,
+          newTotal,
         });
       }
     } catch {
@@ -77,11 +93,22 @@ export async function GET(req: NextRequest) {
   // Static fallback
   let products = DEMO_PRODUCTS as Product[];
   if (gender !== "all") products = products.filter((p) => p.gender === gender);
-  if (type) products = products.filter((p) => p.product_type.toLowerCase().includes(type));
-  else if (mainCat) products = products.filter((p) => classifyProduct(p.product_type).main === mainCat);
+
+  if (search) {
+    const q = search.toLowerCase();
+    products = products.filter((p) =>
+      [p.title, p.vendor, p.product_type, p.description ?? "", ...p.tags].join(" ").toLowerCase().includes(q)
+    );
+  } else if (type) {
+    products = products.filter((p) => p.product_type.toLowerCase().includes(type));
+  } else if (mainCat) {
+    products = products.filter((p) => classifyProduct(p.product_type).main === mainCat);
+  }
+
   if (isNew) products = products.filter((p) => p.is_new);
   if (sizeParam) products = products.filter((p) => (p.available_sizes ?? p.sizes).includes(sizeParam.toUpperCase()));
 
+  const allDemo = DEMO_PRODUCTS as Product[];
   const total = products.length;
   const start = (page - 1) * limit;
   const items = products.slice(start, start + limit);
@@ -91,6 +118,9 @@ export async function GET(req: NextRequest) {
     total,
     page,
     pages: Math.ceil(total / limit),
+    womenTotal: allDemo.filter((p) => p.gender === "female").length,
+    menTotal: allDemo.filter((p) => p.gender === "male").length,
+    newTotal: allDemo.filter((p) => p.is_new).length,
   });
 }
 

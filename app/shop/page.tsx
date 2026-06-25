@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef, useEffect, Suspense } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X, ChevronDown, Search, Loader2, ArrowRight, ChevronRight } from "lucide-react";
@@ -129,6 +129,9 @@ function ShopContent() {
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
+  const [keywordResults, setKeywordResults] = useState<Product[] | null>(null);
+  const [keywordLoading, setKeywordLoading] = useState(false);
+  const keywordAbortRef = useRef<AbortController | null>(null);
 
   // Search state
   const [searchMode, setSearchMode] = useState<"keyword" | "ai">("keyword");
@@ -301,40 +304,57 @@ function ShopContent() {
     if (profile.isPersonalized) setSessionProfile({ ...profile });
   }
 
-  // Keyword-filtered products
-  // Client-side keyword + price + sort on top of server-filtered page
+  // Server-side keyword search — fires debounced whenever keywordQuery changes
+  const runKeywordSearch = useCallback(async (query: string, genderFilter: string) => {
+    if (keywordAbortRef.current) keywordAbortRef.current.abort();
+    if (!query.trim()) { setKeywordResults(null); setKeywordLoading(false); return; }
+    keywordAbortRef.current = new AbortController();
+    setKeywordLoading(true);
+    try {
+      const qp = new URLSearchParams({ search: query, limit: "60" });
+      if (genderFilter && genderFilter !== "all") qp.set("gender", genderFilter);
+      if (sort === "price-asc") qp.set("sort", "price-asc");
+      else if (sort === "price-desc") qp.set("sort", "price-desc");
+      const res = await fetch(`/api/catalog?${qp}`, { signal: keywordAbortRef.current.signal });
+      const data = await res.json();
+      setKeywordResults(data.products ?? []);
+    } catch {
+      // AbortError or network — ignore
+    } finally {
+      setKeywordLoading(false);
+    }
+  }, [sort]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => runKeywordSearch(keywordQuery, gender), 300);
+    return () => clearTimeout(timer);
+  }, [keywordQuery, gender, runKeywordSearch]);
+
+  // Client-side price + sort applied to the server-paginated product page
   const filtered = useMemo(() => {
     let list = [...allProducts];
     if (priceRange !== null) {
       const range = PRICE_RANGES[priceRange];
       list = list.filter((p) => p.price >= range.min && p.price < range.max);
     }
-    if (keywordQuery.trim()) {
-      const words = keywordQuery.toLowerCase().trim().split(/\s+/);
-      const scored = list.map((p) => {
-        const haystack = [p.title, p.vendor, p.product_type, p.description ?? "", ...p.tags].join(" ").toLowerCase();
-        const score = words.reduce((s, w) => s + (haystack.includes(w) ? 1 : 0), 0);
-        return { p, score };
-      }).filter(({ score }) => score > 0);
-      scored.sort((a, b) => b.score - a.score);
-      list = scored.map(({ p }) => p);
-    }
     if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
     return list;
-  }, [allProducts, priceRange, keywordQuery, sort]);
+  }, [allProducts, priceRange, sort]);
 
-  // Final display: AI results > visual search > personalized filter > filter
+  // Final display: AI results > visual search > keyword search > personalized > default
   const displayProducts = useMemo(() => {
     if (searchMode === "ai" && aiResults !== null) return aiResults;
     if (vsResults !== null) return vsResults;
+    if (searchMode === "keyword" && keywordResults !== null) return keywordResults;
     if (sessionProfile?.isPersonalized && sort === "featured") return rankProducts(filtered, sessionProfile);
     return filtered;
-  }, [searchMode, aiResults, vsResults, filtered, sessionProfile, sort]);
+  }, [searchMode, aiResults, vsResults, keywordResults, filtered, sessionProfile, sort]);
 
   const isAiResultsActive = searchMode === "ai" && aiResults !== null;
   const isVsActive = vsResults !== null;
-  const isPersonalized = !isAiResultsActive && !isVsActive && sessionProfile?.isPersonalized && sort === "featured";
+  const isKeywordActive = searchMode === "keyword" && keywordResults !== null;
+  const isPersonalized = !isAiResultsActive && !isVsActive && !isKeywordActive && sessionProfile?.isPersonalized && sort === "featured";
 
   const activeFilters = [
     gender && (gender === "female" ? "Women" : "Men"),
@@ -350,6 +370,7 @@ function ShopContent() {
     setSize(""); setIsNew(false);
     setAiResults(null); setAiQuery(""); setAiUnderstood("");
     setVsResults(null); setVsQuery("");
+    setKeywordResults(null);
     setCatalogPage(1);
   }
 
@@ -572,7 +593,7 @@ function ShopContent() {
               {!isAiResultsActive && !isVsActive && category && ` · ${category}`}
             </h1>
             <p className="font-sans text-xs text-taupe mt-0.5 flex items-center gap-1.5">
-              {isAiResultsActive || isVsActive ? displayProducts.length : catalogTotal} products
+              {isAiResultsActive || isVsActive || isKeywordActive ? displayProducts.length : catalogTotal} products
               {isPersonalized && (
                 <span className="font-sans text-[10px] text-gold border border-gold/30 bg-gold/5 px-2 py-0.5 rounded-full">
                   ✦ Personalised for your session
@@ -582,7 +603,7 @@ function ShopContent() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isAiResultsActive && !isVsActive && (
+            {!isAiResultsActive && !isVsActive && !isKeywordActive && (
               <div className="relative">
                 <select
                   value={sort}
@@ -597,7 +618,7 @@ function ShopContent() {
               </div>
             )}
 
-            {!isAiResultsActive && (
+            {!isAiResultsActive && !isKeywordActive && (
               <button
                 onClick={() => setFiltersOpen(true)}
                 className="lg:hidden flex items-center gap-1.5 font-sans text-xs text-dark border border-gray-200 px-3 py-2 hover:border-dark transition-colors"
@@ -609,8 +630,18 @@ function ShopContent() {
           </div>
         </div>
 
+        {/* Keyword results banner */}
+        {isKeywordActive && (
+          <div className="mb-6 flex items-center gap-2">
+            <span className="font-sans text-xs text-taupe italic">
+              {keywordResults!.length} results for &ldquo;{keywordQuery}&rdquo;
+            </span>
+            <button onClick={() => { setKeywordQuery(""); setKeywordResults(null); }} className="font-sans text-xs text-taupe underline hover:text-dark ml-1">Clear</button>
+          </div>
+        )}
+
         {/* Active filter chips */}
-        {!isAiResultsActive && !isVsActive && activeFilters.length > 0 && (
+        {!isAiResultsActive && !isVsActive && !isKeywordActive && activeFilters.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-6">
             {activeFilters.map((f) => (
               <span key={f} className="inline-flex items-center gap-1.5 font-sans text-xs border border-dark text-dark px-3 py-1">
@@ -624,8 +655,8 @@ function ShopContent() {
         )}
 
         <div className="flex gap-8">
-          {/* Sidebar — desktop, hidden during AI/visual search */}
-          {!isAiResultsActive && !isVsActive && (
+          {/* Sidebar — desktop, hidden during AI/visual/keyword search */}
+          {!isAiResultsActive && !isVsActive && !isKeywordActive && (
             <aside className="hidden lg:block w-52 flex-shrink-0">
               <div className="sticky top-24 space-y-7 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
                 <div>
@@ -743,7 +774,7 @@ function ShopContent() {
                   </div>
                 ))}
               </div>
-            ) : catalogLoading && !isAiResultsActive && !isVsActive ? (
+            ) : keywordLoading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
@@ -777,8 +808,8 @@ function ShopContent() {
                 ))}
               </div>
             )}
-          {/* Catalog pagination */}
-          {!isAiResultsActive && !isVsActive && catalogPages > 1 && (
+          {/* Catalog pagination — hidden during search modes */}
+          {!isAiResultsActive && !isVsActive && !isKeywordActive && catalogPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-10">
               <button
                 onClick={() => { setCatalogPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
