@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Product } from "@/types";
+import { classifyProduct } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,7 +24,7 @@ interface ShopifyProduct {
   product_type?: string;
   vendor?: string;
   tags?: string | string[];
-  variants?: Array<{ price?: string }>;
+  variants?: Array<{ price?: string; option1?: string; available?: boolean; inventory_quantity?: number }>;
   images?: Array<{ src?: string }>;
 }
 
@@ -65,6 +66,13 @@ function convertProduct(p: ShopifyProduct, i: number): Product {
   const productType = p.product_type ?? "Tops";
   const sizes = extractSizes(tagsRaw);
 
+  // Collect sizes from in-stock variants (Feature 11)
+  const available_sizes = (p.variants ?? [])
+    .filter((v) => v.available !== false && (v.inventory_quantity === undefined || v.inventory_quantity > 0))
+    .map((v) => (v.option1 ?? "").trim().toUpperCase())
+    .filter((s) => SIZE_TOKENS.has(s.toLowerCase()));
+
+  const { main, sub } = classifyProduct(productType);
   return {
     id: String(p.id ?? `import-${i}`),
     handle: p.handle ?? `product-${i}`,
@@ -78,14 +86,20 @@ function convertProduct(p: ShopifyProduct, i: number): Product {
     image_urls: (p.images ?? []).map((img) => img.src ?? "").filter(Boolean),
     tags: tagsRaw,
     sizes: sizes.length > 0 ? sizes : ["S", "M", "L", "XL"],
+    available_sizes: available_sizes.length > 0 ? available_sizes : undefined,
     vton_category: inferVtonCategory(productType),
+    main_category: main,
+    sub_category: sub,
+    is_new: true,
+    imported_at: new Date().toISOString(),
   };
 }
 
 export async function POST(req: NextRequest) {
-  const { storeUrl, clearExisting } = await req.json() as {
+  const { storeUrl, clearExisting, categories } = await req.json() as {
     storeUrl: string;
     clearExisting?: boolean;
+    categories?: string[]; // if provided, only import products in these product_types
   };
 
   if (!storeUrl?.trim()) {
@@ -137,7 +151,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No products found. The store may be empty or restrict public access." }, { status: 400 });
   }
 
-  const converted = all.map(convertProduct);
+  // Filter by selected categories if provided
+  const filtered = categories && categories.length > 0
+    ? all.filter((p) => {
+        const type = (p.product_type ?? "Uncategorized").trim();
+        return categories.includes(type);
+      })
+    : all;
+
+  const converted = filtered.map(convertProduct);
 
   if (process.env.MONGODB_URI) {
     try {

@@ -22,17 +22,39 @@ async function getUserStats() {
   }
 }
 
-export default async function AdminPage() {
-  const [brand, userStats] = await Promise.all([getBrandConfig(), getUserStats()]);
+async function getProductStats() {
+  if (process.env.MONGODB_URI) {
+    try {
+      const { connectDB, ProductModel } = await import("@/lib/mongodb");
+      await connectDB();
+      const total = await ProductModel.estimatedDocumentCount();
+      if (total > 0) {
+        const [women, men] = await Promise.all([
+          ProductModel.countDocuments({ gender: "female" }),
+          ProductModel.countDocuments({ gender: "male" }),
+        ]);
+        return { totalProducts: total, womenProducts: women, menProducts: men };
+      }
+    } catch { /* fallback */ }
+  }
+  return {
+    totalProducts: DEMO_PRODUCTS.length,
+    womenProducts: DEMO_PRODUCTS.filter((p) => p.gender === "female").length,
+    menProducts:   DEMO_PRODUCTS.filter((p) => p.gender === "male").length,
+  };
+}
 
-  const totalProducts  = DEMO_PRODUCTS.length;
-  const womenProducts  = DEMO_PRODUCTS.filter((p) => p.gender === "female").length;
-  const menProducts    = DEMO_PRODUCTS.filter((p) => p.gender === "male").length;
+export default async function AdminPage() {
+  const [brand, userStats, stats] = await Promise.all([
+    getBrandConfig(),
+    getUserStats(),
+    getProductStats(),
+  ]);
 
   return (
     <AdminDashboard
       brand={brand}
-      stats={{ totalProducts, womenProducts, menProducts }}
+      stats={stats}
       userStats={userStats}
       systemStatus={{
         hasVton:        !!process.env.FAL_KEY,

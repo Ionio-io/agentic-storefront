@@ -2,22 +2,39 @@
 import { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SlidersHorizontal, X, ChevronDown, Search, Sparkles, Loader2, ArrowRight } from "lucide-react";
-import { DEMO_PRODUCTS } from "@/data/products";
+import { SlidersHorizontal, X, ChevronDown, Search, Loader2, ArrowRight, ChevronRight } from "lucide-react";
 import { Product } from "@/types";
+import type { CategoryGroup } from "@/app/api/catalog/categories/route";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
 import { FloatingChatWidget } from "@/components/storefront/FloatingChatWidget";
 import { VisualSearch } from "@/components/storefront/VisualSearch";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
 import { recordHover, getSessionProfile, rankProducts, type SessionProfile } from "@/lib/behavior-tracker";
-
-const PRODUCT_TYPES = Array.from(new Set(DEMO_PRODUCTS.map((p) => p.product_type))).sort();
 const PRICE_RANGES = [
   { label: "Under ₹1,000", min: 0, max: 1000 },
   { label: "₹1,000 – ₹2,000", min: 1000, max: 2000 },
   { label: "₹2,000 – ₹3,000", min: 2000, max: 3000 },
   { label: "Over ₹3,000", min: 3000, max: Infinity },
 ];
+
+const RV_KEY = "rv_products";
+const RV_MAX = 8;
+
+function saveRecentlyViewed(product: Product) {
+  try {
+    const raw = localStorage.getItem(RV_KEY);
+    const prev: Product[] = raw ? JSON.parse(raw) : [];
+    const next = [product, ...prev.filter((p) => p.id !== product.id)].slice(0, RV_MAX);
+    localStorage.setItem(RV_KEY, JSON.stringify(next));
+  } catch { /* ignore */ }
+}
+
+function loadRecentlyViewed(): Product[] {
+  try {
+    const raw = localStorage.getItem(RV_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
 
 // ── Product card with 1500ms hover tracking ──────────────────────────────────
 
@@ -44,12 +61,21 @@ function TrackedProductCard({
     }
   }
 
+  function handleClick() {
+    saveRecentlyViewed(product);
+    fetch("/api/catalog/view", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: product.id }),
+    }).catch(() => {});
+  }
+
   return (
     <Link
       href={`/products/${product.handle}`}
       className="group block"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
+      onClick={handleClick}
     >
       <div className="relative overflow-hidden bg-[#F7F4F0] mb-3" style={{ aspectRatio: "3/4" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,6 +91,11 @@ function TrackedProductCard({
             alt={product.title}
             className="absolute inset-0 w-full h-full object-cover object-top opacity-0 group-hover:opacity-100 transition-opacity duration-500"
           />
+        )}
+        {product.is_new && (
+          <div className="absolute top-0 left-0 bg-[#C9A84C] text-white font-mono text-[9px] tracking-widest px-2 py-1 uppercase">
+            New
+          </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <div className="bg-dark text-cream font-sans text-[11px] tracking-[0.1em] uppercase text-center py-2.5">
@@ -93,8 +124,11 @@ function ShopContent() {
   );
   const [category, setCategory] = useState(params.get("category") ?? "");
   const [priceRange, setPriceRange] = useState<number | null>(null);
+  const [size, setSize] = useState("");
+  const [isNew, setIsNew] = useState(params.get("isNew") === "true");
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
 
   // Search state
   const [searchMode, setSearchMode] = useState<"keyword" | "ai">("keyword");
@@ -111,6 +145,11 @@ function ShopContent() {
     const onScroll = () => setShowBackToTop(window.scrollY > 400);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Load recently viewed from localStorage on mount
+  useEffect(() => {
+    setRecentlyViewed(loadRecentlyViewed());
   }, []);
 
   // AI search bar — cycling placeholder + inline ghost autocomplete
@@ -164,6 +203,53 @@ function ShopContent() {
     return match ? match.slice(query.length) : "";
   }
 
+  // Catalog — server-side filtered, paginated
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPages, setCatalogPages] = useState(1);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
+  const [expandedMains, setExpandedMains] = useState<Set<string>>(new Set());
+  const [mainCat, setMainCat] = useState("");
+  const CATALOG_LIMIT = 60;
+
+  // Fetch category tree once for sidebar
+  useEffect(() => {
+    fetch("/api/catalog/categories")
+      .then((r) => r.json())
+      .then((data: { groups?: CategoryGroup[] }) => {
+        setCategoryTree(data.groups ?? []);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch products whenever filters or page change
+  useEffect(() => {
+    setCatalogLoading(true);
+    const qp = new URLSearchParams();
+    qp.set("page", String(catalogPage));
+    qp.set("limit", String(CATALOG_LIMIT));
+    if (gender) qp.set("gender", gender);
+    if (category) qp.set("type", category);
+    else if (mainCat) qp.set("mainCat", mainCat);
+    if (isNew) qp.set("isNew", "true");
+    if (size) qp.set("size", size);
+    if (sort === "featured") qp.set("sort", "featured");
+    else if (sort === "price-asc") qp.set("sort", "price-asc");
+    else if (sort === "price-desc") qp.set("sort", "price-desc");
+    fetch(`/api/catalog?${qp}`)
+      .then((r) => r.json())
+      .then((data: { products?: Product[]; total?: number; pages?: number }) => {
+        setAllProducts(data.products ?? []);
+        setCatalogTotal(data.total ?? 0);
+        setCatalogPages(data.pages ?? 1);
+      })
+      .catch(() => {})
+      .finally(() => setCatalogLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gender, category, mainCat, catalogPage, isNew, size, sort]);
+
   // Visual search state
   const [vsResults, setVsResults] = useState<Product[] | null>(null);
   const [vsQuery, setVsQuery] = useState("");
@@ -175,9 +261,12 @@ function ShopContent() {
   useEffect(() => {
     setGender((params.get("gender") as "female" | "male") ?? "");
     setCategory(params.get("category") ?? "");
+    setIsNew(params.get("isNew") === "true");
+    setMainCat("");
     setAiResults(null);
     setVsResults(null);
     setKeywordQuery("");
+    setCatalogPage(1);
   }, [params]);
 
   // Auto-fire AI search when ?q= is in URL (from occasion banners, homepage CTAs, etc.)
@@ -213,10 +302,9 @@ function ShopContent() {
   }
 
   // Keyword-filtered products
+  // Client-side keyword + price + sort on top of server-filtered page
   const filtered = useMemo(() => {
-    let list = [...DEMO_PRODUCTS];
-    if (gender) list = list.filter((p) => p.gender === gender);
-    if (category) list = list.filter((p) => p.product_type === category);
+    let list = [...allProducts];
     if (priceRange !== null) {
       const range = PRICE_RANGES[priceRange];
       list = list.filter((p) => p.price >= range.min && p.price < range.max);
@@ -224,13 +312,7 @@ function ShopContent() {
     if (keywordQuery.trim()) {
       const words = keywordQuery.toLowerCase().trim().split(/\s+/);
       const scored = list.map((p) => {
-        const haystack = [
-          p.title,
-          p.vendor,
-          p.product_type,
-          p.description ?? "",
-          ...p.tags,
-        ].join(" ").toLowerCase();
+        const haystack = [p.title, p.vendor, p.product_type, p.description ?? "", ...p.tags].join(" ").toLowerCase();
         const score = words.reduce((s, w) => s + (haystack.includes(w) ? 1 : 0), 0);
         return { p, score };
       }).filter(({ score }) => score > 0);
@@ -240,7 +322,7 @@ function ShopContent() {
     if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
     return list;
-  }, [gender, category, priceRange, keywordQuery, sort]);
+  }, [allProducts, priceRange, keywordQuery, sort]);
 
   // Final display: AI results > visual search > personalized filter > filter
   const displayProducts = useMemo(() => {
@@ -256,14 +338,19 @@ function ShopContent() {
 
   const activeFilters = [
     gender && (gender === "female" ? "Women" : "Men"),
+    mainCat && !category && mainCat,
     category,
     priceRange !== null && PRICE_RANGES[priceRange].label,
+    size && `Size: ${size}`,
+    isNew && "New Arrivals",
   ].filter(Boolean) as string[];
 
   function clearAll() {
-    setGender(""); setCategory(""); setPriceRange(null); setKeywordQuery("");
+    setGender(""); setCategory(""); setMainCat(""); setPriceRange(null); setKeywordQuery("");
+    setSize(""); setIsNew(false);
     setAiResults(null); setAiQuery(""); setAiUnderstood("");
     setVsResults(null); setVsQuery("");
+    setCatalogPage(1);
   }
 
   async function runAiSearch(e?: React.FormEvent) {
@@ -481,10 +568,11 @@ function ShopContent() {
               {isAiResultsActive ? "AI Search Results" : isVsActive ? "Visual Search Results" : (
                 gender === "female" ? "Women" : gender === "male" ? "Men" : "All Products"
               )}
+              {!isAiResultsActive && !isVsActive && mainCat && ` · ${mainCat}`}
               {!isAiResultsActive && !isVsActive && category && ` · ${category}`}
             </h1>
             <p className="font-sans text-xs text-taupe mt-0.5 flex items-center gap-1.5">
-              {displayProducts.length} products
+              {isAiResultsActive || isVsActive ? displayProducts.length : catalogTotal} products
               {isPersonalized && (
                 <span className="font-sans text-[10px] text-gold border border-gold/30 bg-gold/5 px-2 py-0.5 rounded-full">
                   ✦ Personalised for your session
@@ -539,7 +627,7 @@ function ShopContent() {
           {/* Sidebar — desktop, hidden during AI/visual search */}
           {!isAiResultsActive && !isVsActive && (
             <aside className="hidden lg:block w-52 flex-shrink-0">
-              <div className="sticky top-24 space-y-7">
+              <div className="sticky top-24 space-y-7 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
                 <div>
                   <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Gender</p>
                   <div className="space-y-2">
@@ -554,13 +642,56 @@ function ShopContent() {
 
                 <div>
                   <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Category</p>
-                  <div className="space-y-2">
-                    <button onClick={() => setCategory("")}
-                      className={`block font-sans text-sm transition-colors ${category === "" ? "text-dark font-500" : "text-taupe hover:text-dark"}`}>All</button>
-                    {PRODUCT_TYPES.map((t) => (
-                      <button key={t} onClick={() => setCategory(t)}
-                        className={`block font-sans text-sm transition-colors ${category === t ? "text-dark font-500" : "text-taupe hover:text-dark"}`}>{t}</button>
-                    ))}
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => { setMainCat(""); setCategory(""); setCatalogPage(1); }}
+                      className={`block font-sans text-sm transition-colors ${!mainCat && !category ? "text-dark font-500" : "text-taupe hover:text-dark"}`}>
+                      All
+                    </button>
+                    {categoryTree.map((group) => {
+                      const isMainActive = mainCat === group.main && !category;
+                      const hasActiveSub = group.types.some((t) => category === t.name);
+                      const isExpanded = expandedMains.has(group.main) || hasActiveSub;
+                      return (
+                        <div key={group.main}>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setMainCat(group.main); setCategory(""); setCatalogPage(1);
+                                setExpandedMains((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(group.main) ? next.delete(group.main) : next.add(group.main);
+                                  return next;
+                                });
+                              }}
+                              className={`flex-1 flex items-center justify-between font-sans text-sm transition-colors py-0.5 ${isMainActive ? "text-dark font-500" : "text-taupe hover:text-dark"}`}
+                            >
+                              <span>{group.main}</span>
+                              <span className="font-mono text-[10px] text-taupe ml-2">{group.count.toLocaleString()}</span>
+                            </button>
+                            <button
+                              onClick={() => setExpandedMains((prev) => { const next = new Set(prev); next.has(group.main) ? next.delete(group.main) : next.add(group.main); return next; })}
+                              className="text-taupe hover:text-dark transition-colors"
+                            >
+                              <ChevronRight size={10} className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="ml-3 mt-1 space-y-1 border-l border-gray-100 pl-3">
+                              {group.types.map((t) => (
+                                <button key={t.name}
+                                  onClick={() => { setCategory(t.name); setMainCat(group.main); setCatalogPage(1); }}
+                                  className={`flex items-center justify-between w-full font-sans text-xs transition-colors py-0.5 ${category === t.name ? "text-dark font-500" : "text-taupe hover:text-dark"}`}
+                                >
+                                  <span>{t.sub !== t.name ? t.sub : t.name}</span>
+                                  <span className="font-mono text-[10px] text-taupe">{t.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -574,6 +705,25 @@ function ShopContent() {
                         className={`block font-sans text-sm transition-colors ${priceRange === i ? "text-dark font-500" : "text-taupe hover:text-dark"}`}>{r.label}</button>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Size</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["XS","S","M","L","XL","XXL","28","30","32","34","36","38"].map((s) => (
+                      <button key={s} onClick={() => setSize(size === s ? "" : s)}
+                        className={`font-mono text-[10px] px-2 py-1 border transition-colors ${size === s ? "border-dark bg-dark text-cream" : "border-gray-200 text-taupe hover:border-dark hover:text-dark"}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isNew} onChange={(e) => { setIsNew(e.target.checked); setCatalogPage(1); }} className="accent-gold" />
+                    <span className="font-sans text-sm text-taupe">New Arrivals only</span>
+                  </label>
                 </div>
               </div>
             </aside>
@@ -589,6 +739,17 @@ function ShopContent() {
                     <div className="h-2.5 bg-gray-100 rounded w-1/3 mb-2" />
                     <div className="h-3 bg-gray-100 rounded w-4/5 mb-1.5" />
                     <div className="h-3 bg-gray-100 rounded w-2/3 mb-3" />
+                    <div className="h-3.5 bg-gray-100 rounded w-1/4" />
+                  </div>
+                ))}
+              </div>
+            ) : catalogLoading && !isAiResultsActive && !isVsActive ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-100 w-full mb-3" style={{ aspectRatio: "3/4" }} />
+                    <div className="h-2.5 bg-gray-100 rounded w-1/3 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-4/5 mb-3" />
                     <div className="h-3.5 bg-gray-100 rounded w-1/4" />
                   </div>
                 ))}
@@ -616,6 +777,28 @@ function ShopContent() {
                 ))}
               </div>
             )}
+          {/* Catalog pagination */}
+          {!isAiResultsActive && !isVsActive && catalogPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-10">
+              <button
+                onClick={() => { setCatalogPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                disabled={catalogPage === 1}
+                className="border border-gray-200 font-sans text-xs px-4 py-2 hover:border-dark transition-colors disabled:opacity-40"
+              >
+                ← Prev
+              </button>
+              <span className="font-sans text-xs text-taupe px-3">
+                Page {catalogPage} of {catalogPages}
+              </span>
+              <button
+                onClick={() => { setCatalogPage((p) => Math.min(catalogPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                disabled={catalogPage === catalogPages}
+                className="border border-gray-200 font-sans text-xs px-4 py-2 hover:border-dark transition-colors disabled:opacity-40"
+              >
+                Next →
+              </button>
+            </div>
+          )}
           </div>
         </div>
       </div>
@@ -645,12 +828,30 @@ function ShopContent() {
               </div>
               <div>
                 <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Category</p>
-                <div className="space-y-3">
-                  <button onClick={() => setCategory("")}
-                    className={`block font-sans text-sm ${category === "" ? "text-dark font-500" : "text-taupe"}`}>All</button>
-                  {PRODUCT_TYPES.map((t) => (
-                    <button key={t} onClick={() => setCategory(t)}
-                      className={`block font-sans text-sm ${category === t ? "text-dark font-500" : "text-taupe"}`}>{t}</button>
+                <div className="space-y-2">
+                  <button onClick={() => { setMainCat(""); setCategory(""); setCatalogPage(1); setFiltersOpen(false); }}
+                    className={`block font-sans text-sm ${!mainCat && !category ? "text-dark font-500" : "text-taupe"}`}>All</button>
+                  {categoryTree.map((group) => (
+                    <div key={group.main}>
+                      <button
+                        onClick={() => { setMainCat(group.main); setCategory(""); setCatalogPage(1); setFiltersOpen(false); }}
+                        className={`flex items-center justify-between w-full font-sans text-sm ${mainCat === group.main && !category ? "text-dark font-500" : "text-taupe"}`}
+                      >
+                        <span>{group.main}</span>
+                        <span className="font-mono text-[10px]">{group.count}</span>
+                      </button>
+                      <div className="ml-3 mt-1 space-y-1">
+                        {group.types.map((t) => (
+                          <button key={t.name}
+                            onClick={() => { setCategory(t.name); setMainCat(group.main); setCatalogPage(1); setFiltersOpen(false); }}
+                            className={`flex items-center justify-between w-full font-sans text-xs ${category === t.name ? "text-dark font-500" : "text-taupe"}`}
+                          >
+                            <span>{t.sub !== t.name ? t.sub : t.name}</span>
+                            <span className="font-mono text-[10px]">{t.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -671,6 +872,30 @@ function ShopContent() {
                 className="w-full bg-dark text-cream font-sans text-xs tracking-[0.15em] uppercase py-3">
                 Show {filtered.length} Results
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recently Viewed shelf */}
+      {recentlyViewed.length > 0 && (
+        <div className="border-t border-gray-100 bg-[#FAFAF8] mt-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-5">Recently Viewed</p>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              {recentlyViewed.map((product) => (
+                <Link key={product.id} href={`/products/${product.handle}`} className="group shrink-0 w-32">
+                  <div className="relative overflow-hidden bg-[#F7F4F0] mb-2" style={{ aspectRatio: "3/4" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={product.image_urls[0]} alt={product.title} className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
+                    {product.is_new && (
+                      <div className="absolute top-0 left-0 bg-[#C9A84C] text-white font-mono text-[8px] tracking-widest px-1.5 py-0.5 uppercase">New</div>
+                    )}
+                  </div>
+                  <p className="font-sans text-xs text-dark line-clamp-2 leading-snug">{product.title}</p>
+                  <p className="font-display text-xs text-dark mt-0.5">₹{product.price.toLocaleString("en-IN")}</p>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

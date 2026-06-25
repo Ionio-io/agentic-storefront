@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEMO_PRODUCTS } from "@/data/products";
 import { Product } from "@/types";
+import { classifyProduct } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -8,10 +9,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const page   = Math.max(1, parseInt(searchParams.get("page")   ?? "1"));
-  const limit  = Math.min(50, parseInt(searchParams.get("limit") ?? "20"));
-  const gender = searchParams.get("gender") ?? "all";
-  const type   = searchParams.get("type")?.toLowerCase() ?? "";
+  const page      = Math.max(1, parseInt(searchParams.get("page")   ?? "1"));
+  const limit     = Math.min(500, parseInt(searchParams.get("limit") ?? "20"));
+  const gender    = searchParams.get("gender") ?? "all";
+  const type      = searchParams.get("type")?.toLowerCase() ?? "";
+  const mainCat   = searchParams.get("mainCat") ?? "";
+  const isNew     = searchParams.get("isNew") === "true";
+  const sizeParam = searchParams.get("size") ?? "";
+  const sortParam = searchParams.get("sort") ?? "";
 
   // Try MongoDB first (uploaded catalog), fall back to demo products
   if (process.env.MONGODB_URI) {
@@ -22,11 +27,35 @@ export async function GET(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const filter: Record<string, any> = {};
       if (gender !== "all") filter.gender = gender;
-      if (type) filter.product_type = { $regex: type, $options: "i" };
+      if (type) {
+        filter.product_type = { $regex: type, $options: "i" };
+      } else if (mainCat) {
+        // Classify all distinct product_types in DB, keep those matching mainCat
+        const allTypes = await ProductModel.distinct("product_type") as string[];
+        const matching = allTypes.filter((t) => classifyProduct(t).main === mainCat);
+        if (matching.length > 0) {
+          filter.$or = [
+            { main_category: mainCat },
+            { main_category: { $exists: false }, product_type: { $in: matching } },
+          ];
+        } else {
+          filter.main_category = mainCat;
+        }
+      }
+
+      if (isNew) filter.is_new = true;
+      if (sizeParam) filter.available_sizes = sizeParam.toUpperCase();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let sortOrder: Record<string, any> = {};
+      if (sortParam === "featured") sortOrder = { is_featured: -1, _id: -1 };
+      else if (sortParam === "price-asc") sortOrder = { price: 1 };
+      else if (sortParam === "price-desc") sortOrder = { price: -1 };
 
       const [total, products] = await Promise.all([
         ProductModel.countDocuments(filter),
         ProductModel.find(filter)
+          .sort(sortOrder)
           .skip((page - 1) * limit)
           .limit(limit)
           .lean(),
@@ -49,6 +78,9 @@ export async function GET(req: NextRequest) {
   let products = DEMO_PRODUCTS as Product[];
   if (gender !== "all") products = products.filter((p) => p.gender === gender);
   if (type) products = products.filter((p) => p.product_type.toLowerCase().includes(type));
+  else if (mainCat) products = products.filter((p) => classifyProduct(p.product_type).main === mainCat);
+  if (isNew) products = products.filter((p) => p.is_new);
+  if (sizeParam) products = products.filter((p) => (p.available_sizes ?? p.sizes).includes(sizeParam.toUpperCase()));
 
   const total = products.length;
   const start = (page - 1) * limit;

@@ -5,6 +5,28 @@ import { DEMO_PRODUCTS } from "@/data/products";
 
 export const dynamic = "force-dynamic";
 
+async function getCatalogStats() {
+  if (process.env.MONGODB_URI) {
+    try {
+      const { connectDB, ProductModel } = await import("@/lib/mongodb");
+      await connectDB();
+      const total = await ProductModel.estimatedDocumentCount();
+      if (total > 0) {
+        const [women, men] = await Promise.all([
+          ProductModel.countDocuments({ gender: "female" }),
+          ProductModel.countDocuments({ gender: "male" }),
+        ]);
+        return { total, women, men };
+      }
+    } catch { /* fall through */ }
+  }
+  return {
+    total: DEMO_PRODUCTS.length,
+    women: DEMO_PRODUCTS.filter((p) => p.gender === "female").length,
+    men:   DEMO_PRODUCTS.filter((p) => p.gender === "male").length,
+  };
+}
+
 export async function GET() {
   const jar = await cookies();
   const token = jar.get("admin_session")?.value;
@@ -12,11 +34,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const catalogTotal = DEMO_PRODUCTS.length;
-  const catalogWomen = DEMO_PRODUCTS.filter((p) => p.gender === "female").length;
-  const catalogMen   = DEMO_PRODUCTS.filter((p) => p.gender === "male").length;
-
-  const base = { catalog: { total: catalogTotal, women: catalogWomen, men: catalogMen } };
+  const catalog = await getCatalogStats();
+  const base = { catalog };
 
   if (!process.env.MONGODB_URI) {
     return NextResponse.json({ ...base, noMongo: true, daily: [], activeNow: 0, newToday: 0, total: 0 });

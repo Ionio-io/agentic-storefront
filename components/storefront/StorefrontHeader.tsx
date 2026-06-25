@@ -9,6 +9,8 @@ import { useBrand } from "@/lib/brand-context";
 const NAV_LINKS = [
   { label: "Women", href: "/shop?gender=female" },
   { label: "Men", href: "/shop?gender=male" },
+  { label: "New Arrivals", href: "/shop?isNew=true" },
+  { label: "Collections", href: "/shop/collections" },
 ];
 
 export function StorefrontHeader() {

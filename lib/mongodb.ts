@@ -41,22 +41,35 @@ export async function connectDB() {
 }
 
 const ProductSchema = new mongoose.Schema({
-  id:            { type: String, required: true, unique: true },
-  title:         { type: String, required: true },
-  handle:        { type: String, required: true },
-  description:   String,
-  product_type:  String,
-  vendor:        String,
-  gender:        { type: String, enum: ["male", "female"] },
-  price:         Number,
-  available:     { type: Boolean, default: true },
-  image_urls:    [String],
-  tags:          [String],
-  sizes:         [String],
-  vton_category: { type: String, enum: ["upper", "lower", "one-pieces"] },
+  id:              { type: String, required: true, unique: true },
+  title:           { type: String, required: true },
+  handle:          { type: String, required: true },
+  description:     String,
+  product_type:    String,
+  vendor:          String,
+  gender:          { type: String, enum: ["male", "female"] },
+  price:           Number,
+  price_override:  Number,
+  available:       { type: Boolean, default: true },
+  image_urls:      [String],
+  tags:            [String],
+  sizes:           [String],
+  available_sizes: [String],
+  vton_category:   { type: String, enum: ["upper", "lower", "one-pieces"] },
+  main_category:   String,
+  sub_category:    String,
+  is_new:          { type: Boolean, default: false },
+  is_featured:     { type: Boolean, default: false },
+  imported_at:     Date,
+  view_count:      { type: Number, default: 0 },
+  last_viewed_at:  Date,
 });
 
 ProductSchema.index({ title: "text", description: "text", tags: "text", product_type: "text" });
+ProductSchema.index({ is_featured: -1 });
+ProductSchema.index({ is_new: 1 });
+ProductSchema.index({ available_sizes: 1 });
+ProductSchema.index({ last_viewed_at: 1 });
 
 export const ProductModel =
   mongoose.models.Product ?? mongoose.model("Product", ProductSchema);
@@ -160,6 +173,31 @@ StyleProfileSchema.index({ userId: 1 });
 
 export const StyleProfileModel =
   mongoose.models.StyleProfile ?? mongoose.model("StyleProfile", StyleProfileSchema);
+
+const SyncStoreSchema = new mongoose.Schema({
+  storeUrl:  { type: String, required: true },
+  name:      { type: String, required: true },
+  schedule:  { type: String, enum: ["manual","6h","12h","24h"], default: "manual" },
+  lastSync:  Date,
+  lastCount: Number,
+  enabled:   { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const SyncStoreModel =
+  mongoose.models.SyncStore ?? mongoose.model("SyncStore", SyncStoreSchema);
+
+const CollectionSchema = new mongoose.Schema({
+  name:       { type: String, required: true },
+  slug:       { type: String, required: true, unique: true },
+  description: String,
+  coverImage:  String,
+  productIds:  [String],
+  createdAt:  { type: Date, default: Date.now },
+});
+
+export const CollectionModel =
+  mongoose.models.Collection ?? mongoose.model("Collection", CollectionSchema);
 
 const DemandSignalSchema = new mongoose.Schema({
   productId:     { type: String, required: true, unique: true },

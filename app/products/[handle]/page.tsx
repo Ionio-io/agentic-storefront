@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Sparkles, X, Send, Loader2, RefreshCw } from "lucide-react";
-import { DEMO_PRODUCTS } from "@/data/products";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
 import { VTOWidget } from "@/components/chat/VTOWidget";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
@@ -119,20 +118,40 @@ function ProductAIDrawer({ product, onClose, onSizeSelect, initialQuery }: { pro
 
   const quickQuestions = aiQuestions.length > 0 ? aiQuestions : FALLBACK_QUESTIONS(product);
 
-  const systemSeed = `PRODUCT PAGE CONTEXT — the shopper is currently viewing this specific product:
-Title: ${product.title}
-Brand: ${product.vendor}
-Product ID: ${product.id}
-Price: ₹${product.price.toLocaleString("en-IN")}
-Category: ${product.product_type}
-Gender: ${product.gender === "female" ? "Women" : "Men"}
-Available sizes: ${product.sizes.join(", ")}
-Description: ${product.description}
-Tags: ${product.tags.join(", ")}
+  const COLORS = ["blue","red","green","black","white","pink","yellow","purple","orange","brown","grey","gray","beige","maroon","teal","navy","gold","silver","mustard","coral","peach","cream","ivory","nude","tan","olive","rust","khaki"];
+  const FABRICS = ["cotton","silk","linen","polyester","rayon","viscose","chiffon","georgette","crepe","denim","wool","cashmere","leather","velvet","satin","nylon","spandex","lycra","modal","bamboo","fleece","jersey"];
+  const allText = [product.title, product.description, ...product.tags].join(" ").toLowerCase();
+  const detectedColors = COLORS.filter(c => allText.includes(c));
+  const detectedFabrics = FABRICS.filter(f => allText.includes(f));
+  const effectivePrice = product.price_override ?? product.price;
+  const genderLabel = product.gender === "female" ? "Women" : "Men";
+  const genderProducts = product.gender === "female" ? "women's" : "men's";
+  const oppGender = product.gender === "female" ? "men's" : "women's";
+  const displaySizes = (product.available_sizes?.length ? product.available_sizes : product.sizes).join(", ");
 
-GENDER RESTRICTION: This is a ${product.gender === "female" ? "women's" : "men's"} product page. ONLY suggest ${product.gender === "female" ? "women's" : "men's"} products when recommending complementary items or building outfits. Do NOT suggest or reference ${product.gender === "female" ? "men's" : "women's"} products under any circumstances.
+  const systemSeed = `━━━ ACTIVE PRODUCT PAGE ━━━
+The shopper is viewing a specific product. Anchor ALL responses to this item.
 
-Answer questions about THIS product specifically. For sizing questions, use the available sizes listed above. To build a complete outfit around this product call build_outfit with base_product_id: "${product.id}".`;
+PRODUCT:
+• Title: ${product.title}
+• Brand: ${product.vendor}
+• ID: ${product.id}
+• Price: ₹${effectivePrice.toLocaleString("en-IN")}${product.price_override && product.price_override !== product.price ? ` (was ₹${product.price.toLocaleString("en-IN")})` : ""}
+• Category: ${product.product_type}${product.main_category ? ` › ${product.main_category} › ${product.sub_category}` : ""}
+• Gender: ${genderLabel}
+• Available sizes: ${displaySizes}${detectedColors.length ? `\n• Colour: ${detectedColors.join(", ")}` : ""}${detectedFabrics.length ? `\n• Fabric: ${detectedFabrics.join(", ")}` : ""}${product.is_new ? "\n• ★ NEW ARRIVAL" : ""}${product.is_featured ? "\n• ⭐ FEATURED" : ""}
+• Description: ${product.description}
+• Tags: ${product.tags.join(", ")}
+
+STYLIST TOOLS:
+- Complete outfit → build_outfit { base_product_id: "${product.id}" }
+- Similar items → get_similar_products { product_id: "${product.id}" }
+- By size → filter_by_size { gender: "${product.gender}" }
+- Search catalog → search_products { gender: "${product.gender}" }
+- If shopper shares their size, immediately call filter_by_size to show in-stock options
+- Mention the ✦ Size Predictor button on this page for fit advice
+
+GENDER RULE: ${genderProducts.charAt(0).toUpperCase() + genderProducts.slice(1)} product only. NEVER suggest ${oppGender} items.`;
 
   // For pre-generated Q&A — answer instantly without hitting the agent
   function sendInstant(question: string, answer: string) {
@@ -460,9 +479,7 @@ Answer questions about THIS product specifically. For sizing questions, use the 
 // ── Complete Outfit section ─────────────────────────────────────────────────
 
 function CompleteOutfit({ product, onOpenAI }: { product: Product; onOpenAI: () => void }) {
-  const [outfitProducts, setOutfitProducts] = useState<Product[]>(
-    DEMO_PRODUCTS.filter((p) => p.id !== product.id && p.gender === product.gender && p.product_type !== product.product_type).slice(0, 4)
-  );
+  const [outfitProducts, setOutfitProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [aiDone, setAiDone] = useState(false);
 
@@ -524,23 +541,35 @@ function CompleteOutfit({ product, onOpenAI }: { product: Product; onOpenAI: () 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-          {outfitProducts.map((rec) => (
-            <Link key={rec.id} href={`/products/${rec.handle}`} className="group block">
-              <div className="relative overflow-hidden bg-[#F7F4F0] mb-3" style={{ aspectRatio: "3/4" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={rec.image_urls[0]}
-                  alt={rec.title}
-                  className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              <p className="font-sans text-[10px] text-taupe uppercase tracking-wide mb-0.5">{rec.vendor}</p>
-              <p className="font-sans text-sm text-dark line-clamp-2 leading-snug mb-1">{rec.title}</p>
-              <p className="font-display text-base font-500 text-dark">₹{rec.price.toLocaleString("en-IN")}</p>
-            </Link>
-          ))}
-        </div>
+        {outfitProducts.length === 0 && !loading ? (
+          <div className="border border-dashed border-gray-200 py-12 text-center">
+            <p className="font-sans text-xs text-taupe mb-3">Click "Style with AI" to see curated pieces that complement this item.</p>
+            <button
+              onClick={buildAiLook}
+              className="font-sans text-xs tracking-[0.1em] uppercase text-[#C9A84C] hover:underline"
+            >
+              Build My Outfit →
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+            {outfitProducts.map((rec) => (
+              <Link key={rec.id} href={`/products/${rec.handle}`} className="group block">
+                <div className="relative overflow-hidden bg-[#F7F4F0] mb-3" style={{ aspectRatio: "3/4" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={rec.image_urls[0]}
+                    alt={rec.title}
+                    className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <p className="font-sans text-[10px] text-taupe uppercase tracking-wide mb-0.5">{rec.vendor}</p>
+                <p className="font-sans text-sm text-dark line-clamp-2 leading-snug mb-1">{rec.title}</p>
+                <p className="font-display text-base font-500 text-dark">₹{rec.price.toLocaleString("en-IN")}</p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -661,7 +690,8 @@ function RecentlyViewed({ currentId }: { currentId: string }) {
 
 export default function ProductDetailPage() {
   const { handle } = useParams<{ handle: string }>();
-  const product = DEMO_PRODUCTS.find((p) => p.handle === handle);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [productLoading, setProductLoading] = useState(true);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -709,7 +739,13 @@ export default function ProductDetailPage() {
     return () => clearTimeout(tid);
   }, [pdpBarFocused]);
 
-  if (!product) notFound();
+  useEffect(() => {
+    setProductLoading(true);
+    fetch(`/api/products/${encodeURIComponent(handle)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setProduct(data as Product); setProductLoading(false); })
+      .catch(() => setProductLoading(false));
+  }, [handle]);
 
   // Track view demand signal on page load + recently viewed
   useEffect(() => {
@@ -744,6 +780,16 @@ export default function ProductDetailPage() {
     setSelectedSize(size);
     recordSizeTap(product, size);
   }
+
+  if (productLoading) return (
+    <div className="min-h-screen bg-white">
+      <StorefrontHeader />
+      <div className="flex items-center justify-center" style={{ height: "65vh" }}>
+        <div className="w-6 h-6 rounded-full border-2 border-t-transparent border-[#C9A84C] animate-spin" />
+      </div>
+    </div>
+  );
+  if (!product) notFound();
 
   return (
     <>
