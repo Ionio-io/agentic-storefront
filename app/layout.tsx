@@ -40,7 +40,8 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
     icons: {
-      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>",
+      icon: "/favicon.png",
+      apple: "/favicon.png",
     },
   };
 }
