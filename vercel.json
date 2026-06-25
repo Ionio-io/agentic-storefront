@@ -1,8 +1,2 @@
 {
-  "crons": [
-    {
-      "path": "/api/sync-store/cron",
-      "schedule": "0 */6 * * *"
-    }
-  ]
 }
