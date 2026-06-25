@@ -203,12 +203,6 @@ export default function SyncPage() {
         </div>
       )}
 
-      <div className="mt-8 bg-[#F7F5F0] border border-[#D8D0C0] px-5 py-4">
-        <p className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest mb-2">Auto-sync via Cron</p>
-        <p className="font-sans text-xs text-[#8A7560] leading-relaxed">
-          Scheduled syncs run via <code className="bg-white px-1">/api/sync-store/cron</code>. Configure in <code className="bg-white px-1">vercel.json</code> — set <code className="bg-white px-1">CRON_SECRET</code> in env vars to secure the endpoint.
-        </p>
-      </div>
     </div>
   );
 }
