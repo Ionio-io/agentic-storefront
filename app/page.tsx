@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DEMO_PRODUCTS } from "@/data/products";
+import { Product } from "@/types";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
 import { WishlistButton } from "@/components/storefront/WishlistButton";
 import { useBrand } from "@/lib/brand-context";
@@ -35,15 +36,8 @@ const CATEGORIES = [
   },
 ];
 
-const FEATURED = DEMO_PRODUCTS.slice(0, 8);
-
-const FEATURED_BADGES: Record<number, "NEW" | "SALE"> = {
-  0: "NEW",
-  2: "SALE",
-  4: "NEW",
-  5: "SALE",
-  7: "NEW",
-};
+const DEMO_HERO = [DEMO_PRODUCTS[0], DEMO_PRODUCTS[1], DEMO_PRODUCTS[3]];
+const DEMO_FEATURED = DEMO_PRODUCTS.slice(0, 8);
 
 const PROMPT_CHIPS = [
   "Ethnic kurta for women under ₹1500",
@@ -60,6 +54,25 @@ export default function HomePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [placeholder, setPlaceholder] = useState(PROMPT_CHIPS[0]);
   const [isFocused, setIsFocused] = useState(false);
+  const [heroProducts, setHeroProducts] = useState<Product[]>(DEMO_HERO);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>(DEMO_FEATURED);
+
+  useEffect(() => {
+    fetch("/api/catalog?sort=featured&limit=12")
+      .then((r) => r.json())
+      .then((data: { products?: Product[] }) => {
+        const products = data.products ?? [];
+        if (products.length >= 4) {
+          setFeaturedProducts(products.slice(0, 8));
+          setHeroProducts([
+            products[0],
+            products[1],
+            products[3] ?? products[2],
+          ]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isFocused) return;
@@ -231,8 +244,8 @@ export default function HomePage() {
               <div className="hero-img-1 relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={DEMO_PRODUCTS[0].image_urls[0]}
-                  alt={DEMO_PRODUCTS[0].title}
+                  src={heroProducts[0]?.image_urls[0]}
+                  alt={heroProducts[0]?.title}
                   className="w-full h-full object-cover object-top"
                 />
               </div>
@@ -240,16 +253,16 @@ export default function HomePage() {
                 <div className="hero-img-2 relative overflow-hidden flex-1">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={DEMO_PRODUCTS[1].image_urls[0]}
-                    alt={DEMO_PRODUCTS[1].title}
+                    src={heroProducts[1]?.image_urls[0]}
+                    alt={heroProducts[1]?.title}
                     className="w-full h-full object-cover object-top"
                   />
                 </div>
                 <div className="hero-img-3 relative overflow-hidden flex-1">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={DEMO_PRODUCTS[3].image_urls[0]}
-                    alt={DEMO_PRODUCTS[3].title}
+                    src={heroProducts[2]?.image_urls[0]}
+                    alt={heroProducts[2]?.title}
                     className="w-full h-full object-cover object-top"
                   />
                 </div>
@@ -301,7 +314,10 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-          {FEATURED.map((product, idx) => (
+          {featuredProducts.map((product, idx) => {
+            const isSale = product.price_override != null && product.price_override < product.price;
+            const badge = isSale ? "SALE" : product.is_new ? "NEW" : null;
+            return (
             <div
               key={product.id}
               className="group"
@@ -323,9 +339,9 @@ export default function HomePage() {
                     className="absolute inset-0 w-full h-full object-cover object-top opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   />
                 )}
-                {FEATURED_BADGES[idx] && (
-                  <div className={`absolute top-2.5 left-2.5 font-sans text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 ${FEATURED_BADGES[idx] === "SALE" ? "bg-red-500 text-white" : "bg-dark text-cream"}`}>
-                    {FEATURED_BADGES[idx]}
+                {badge && (
+                  <div className={`absolute top-2.5 left-2.5 font-sans text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 ${badge === "SALE" ? "bg-red-500 text-white" : "bg-dark text-cream"}`}>
+                    {badge}
                   </div>
                 )}
                 <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -344,7 +360,8 @@ export default function HomePage() {
               </div>
               </Link>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -367,8 +384,13 @@ export default function HomePage() {
             <div>
               <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Help</p>
               <ul className="space-y-2">
-                {["Size Guide", "Returns", "Track Order", "Contact Us"].map((l) => (
-                  <li key={l}><span className="font-sans text-xs text-taupe">{l}</span></li>
+                {[
+                  { label: "Size Guide", href: "/shop" },
+                  { label: "Returns", href: "/shop" },
+                  { label: "Track Order", href: "/shop" },
+                  { label: "Contact Us", href: "/chat" },
+                ].map((l) => (
+                  <li key={l.label}><Link href={l.href} className="font-sans text-xs text-taupe hover:text-dark transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
             </div>
@@ -382,7 +404,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="font-sans text-[11px] text-taupe">© 2025 Ionio. All rights reserved.</p>
+            <p className="font-sans text-[11px] text-taupe">© {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
           </div>
         </div>
       </footer>
