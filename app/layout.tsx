@@ -40,8 +40,8 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
     icons: {
-      icon: "/logo-tbh.svg",
-      apple: "/logo-tbh.svg",
+      icon: "/favicon.svg",
+      apple: "/favicon.svg",
     },
   };
 }
