@@ -164,7 +164,7 @@ function inferGender(tags: string[], productType: string, vendor: string): "male
     return "female";
   if (haystack.includes("men") || haystack.includes("male") || haystack.includes("gents"))
     return "male";
-  return "female";
+  return "male";
 }
 
 const SIZE_TOKENS = new Set(["xs","s","m","l","xl","xxl","2xl","3xl","28","30","32","34","36","38","40","42","one size"]);
@@ -260,4 +260,22 @@ export async function POST(req: NextRequest) {
     products: converted,
     note: "MongoDB not configured. Products returned but not persisted. Set MONGODB_URI to enable persistence.",
   });
+}
+
+// ─── DELETE /api/catalog — clear all products from MongoDB ───────────────────
+export async function DELETE(req: NextRequest) {
+  const { verifyAdminToken, COOKIE_NAME } = await import("@/lib/admin-auth");
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  if (!(await verifyAdminToken(token))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!process.env.MONGODB_URI) return NextResponse.json({ error: "MongoDB not configured" }, { status: 503 });
+  try {
+    const { connectDB, ProductModel } = await import("@/lib/mongodb");
+    await connectDB();
+    const result = await ProductModel.deleteMany({});
+    return NextResponse.json({ ok: true, deleted: result.deletedCount });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

@@ -14,6 +14,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+vercel.env
 
 # Debug
 npm-debug.log*
@@ -44,3 +45,4 @@ Thumbs.db
 
 # Local brand config override (auto-written by admin save when no MongoDB)
 data/brand-override.json
+.gstack/

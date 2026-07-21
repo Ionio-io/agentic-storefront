@@ -32,10 +32,9 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: "system",
-            content: `You are a search intent parser for ${brandConfig.name}, an Indian fashion brand.
-Catalog: women's ethnic wear (Ethnic Suits), dresses (Dresses), tops (Tops), loungewear (Loungewear), trousers (Trousers);
-menswear: shirts (Shirts, Formal Shirts, Casual Shirts, Polo Shirts), T-shirts (T-Shirts), jeans (Jeans), trousers (Trousers), jackets (Jackets).
-Prices ₹599–₹3,999. Extract search parameters from the user query.`,
+            content: `You are a search intent parser for ${brandConfig.name}, a men's fashion brand.
+Catalog: shirts (Oxford, casual, check, formal, printed), polos, graphic and solid tees, slim-fit jeans, tailored trousers, cargo pants, shackets, sweatshirts.
+All products are menswear. Prices ₹799–₹3,999. Extract search parameters from the user query.`,
           },
           { role: "user", content: query },
         ],

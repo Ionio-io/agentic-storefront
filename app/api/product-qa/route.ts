@@ -40,7 +40,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ? "This is a bottom wear product. Questions about stretch, waist flexibility, length, and fit through hips/thighs are very relevant."
     : isMen
     ? "This is menswear. Questions about shoulder fit, sleeve length, collar, fabric breathability for Indian weather, and office vs casual use are very relevant."
-    : "This is a women's western wear product. Questions about see-through fabric, length, neckline, body type suitability, and styling are very relevant.";
+    : "This is a menswear product. Questions about fit, fabric quality, occasion suitability, and styling are very relevant.";
 
   const prompt = `You are a knowledgeable Indian fashion stylist at ${vendor ?? "this brand"}.
 

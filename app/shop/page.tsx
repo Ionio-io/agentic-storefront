@@ -211,7 +211,7 @@ function ShopContent() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [categoryTree, setCategoryTree] = useState<CategoryGroup[]>([]);
   const [expandedMains, setExpandedMains] = useState<Set<string>>(new Set());
-  const [mainCat, setMainCat] = useState("");
+  const [mainCat, setMainCat] = useState(params.get("mainCat") ?? "");
   const CATALOG_LIMIT = 60;
 
   // Fetch category tree once for sidebar

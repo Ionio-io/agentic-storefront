@@ -5,9 +5,9 @@ import { clsx } from "clsx";
 
 const SUGGESTIONS = [
   "Show me casual shirts for men",
-  "Find a dress for a party",
-  "Ethnic wear under ₹1500",
+  "Best polos under ₹1500",
   "Suggest a complete office outfit",
+  "Sharp look for a night out",
 ];
 
 interface Props {

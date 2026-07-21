@@ -23,7 +23,7 @@ function inferGender(tags: string[], type: string, vendor: string): "male"|"fema
   const h = [...tags, type, vendor].join(" ").toLowerCase();
   if (h.includes("women")||h.includes("female")||h.includes("ladies")) return "female";
   if (h.includes("men")||h.includes("male")||h.includes("gents")) return "male";
-  return "female";
+  return "male";
 }
 
 async function syncStore(storeUrl: string, storeId: string) {

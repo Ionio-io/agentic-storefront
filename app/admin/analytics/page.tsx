@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
         }
 
         .ap-topbar h1 {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: var(--font-sans, 'DM Sans', sans-serif);
           font-size: 1.75rem;
           font-weight: 400;
           color: var(--adm-text, #1A1710);
@@ -138,7 +138,7 @@ export default function AnalyticsPage() {
         }
 
         .big-stat {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: var(--font-sans, 'DM Sans', sans-serif);
           font-size: 4rem;
           font-weight: 400;
           color: var(--adm-text, #1A1710);
@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
           color: var(--adm-text2, #6B6155);
         }
         .funnel-val {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: var(--font-sans, 'DM Sans', sans-serif);
           font-size: 1.25rem;
           color: var(--adm-text, #1A1710);
           font-weight: 400;
@@ -355,19 +355,19 @@ export default function AnalyticsPage() {
                 <div style={{ height: "1.25rem" }} />
                 <div className="cat-split">
                   <div
-                    className="cat-split-w"
-                    style={{ width: `${(metrics.catalog.women / metrics.catalog.total) * 100}%` }}
+                    className="cat-split-m"
+                    style={{ width: `${(metrics.catalog.men / metrics.catalog.total) * 100}%` }}
                   />
-                  <div className="cat-split-m" />
+                  <div className="cat-split-w" />
                 </div>
                 <div className="cat-legend">
                   <div className="legend-item">
-                    <div className="legend-dot" style={{ background: "var(--adm-gold,#B8941E)", opacity: 0.7 }} />
-                    Women · {metrics.catalog.women}
+                    <div className="legend-dot" style={{ background: "var(--adm-gold,#EE4740)" }} />
+                    Men&apos;s · {metrics.catalog.men}
                   </div>
                   <div className="legend-item">
-                    <div className="legend-dot" style={{ background: "rgba(184,148,30,0.2)" }} />
-                    Men · {metrics.catalog.men}
+                    <div className="legend-dot" style={{ background: "rgba(238,71,64,0.15)" }} />
+                    Other · {metrics.catalog.total - metrics.catalog.men}
                   </div>
                 </div>
               </>

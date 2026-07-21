@@ -40,7 +40,7 @@ function inferGender(tags: string[], productType: string, vendor: string): "male
   const haystack = [...tags, productType, vendor].join(" ").toLowerCase();
   if (haystack.includes("women") || haystack.includes("female") || haystack.includes("ladies")) return "female";
   if (haystack.includes("men") || haystack.includes("male") || haystack.includes("gents")) return "male";
-  return "female";
+  return "male";
 }
 
 const SIZE_TOKENS = new Set([

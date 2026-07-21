@@ -26,7 +26,7 @@ export default function CatalogPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // URL import
-  const [importUrl, setImportUrl] = useState("");
+  const [importUrl, setImportUrl] = useState("https://thebearhouse.com");
   const [clearExisting, setClearExisting] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);

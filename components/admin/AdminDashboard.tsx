@@ -85,8 +85,7 @@ export function AdminDashboard({ brand, stats, userStats, systemStatus }: Props)
 
   // Live catalog counts — prefer metrics (fetched from MongoDB), fall back to SSR props
   const liveCatalogTotal = metrics?.catalog?.total ?? stats.totalProducts;
-  const liveCatalogWomen = metrics?.catalog?.women ?? stats.womenProducts;
-  const liveCatalogMen   = metrics?.catalog?.men   ?? stats.menProducts;
+  const liveCatalogMen   = metrics?.catalog?.men ?? stats.menProducts;
 
   return (
     <>
@@ -379,7 +378,7 @@ export function AdminDashboard({ brand, stats, userStats, systemStatus }: Props)
             {
               lbl: "Products",
               val: liveCatalogTotal,
-              sub: `${liveCatalogWomen}W · ${liveCatalogMen}M`,
+              sub: `${liveCatalogMen} Men's`,
               ok: false,
             },
             {
