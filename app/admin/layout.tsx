@@ -61,9 +61,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           --adm-surface:   #FFFFFF;
           --adm-border:    #E4E7EC;
           --adm-border-sm: #EEF0F4;
-          --adm-gold:      #C9A84C;
-          --adm-gold-bg:   rgba(201,168,76,0.06);
-          --adm-gold-md:   rgba(201,168,76,0.15);
+          --adm-gold:      #EE4740;
+          --adm-gold-bg:   rgba(238,71,64,0.06);
+          --adm-gold-md:   rgba(238,71,64,0.15);
           --adm-ink:       #111827;
           --adm-ink2:      #374151;
           --adm-muted:     #6B7280;

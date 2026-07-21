@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, DM_Mono } from "next/font/google";
+import { Barlow_Condensed, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { getBrandConfig } from "@/lib/brand-config";
 import { BrandProvider } from "@/lib/brand-context";
 
-const cormorant = Cormorant_Garamond({
+const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
@@ -33,10 +33,10 @@ export async function generateMetadata(): Promise<Metadata> {
       default: `${brand.name} · AI Storefront`,
       template: `%s · ${brand.name}`,
     },
-    description: `Shop ${brand.name} fashion with your personal AI stylist — discover, try on virtually, and buy.`,
+    description: `Shop ${brand.name} menswear with your personal AI stylist — discover your look, try on virtually, and buy.`,
     openGraph: {
       title: `${brand.name} · AI Storefront`,
-      description: "Conversational AI shopping — describe what you want, see it on you, buy in one step.",
+      description: "AI-powered menswear shopping — describe your look, see it styled, buy in one step.",
       type: "website",
     },
     icons: {
@@ -48,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${dmSans.variable} ${dmMono.variable}`}>
+    <html lang="en" className={`${barlowCondensed.variable} ${dmSans.variable} ${dmMono.variable}`}>
       <body><BrandProvider>{children}</BrandProvider></body>
     </html>
   );

@@ -115,14 +115,14 @@ export default function CollectionsPage() {
       <div className="flex items-start justify-between mb-1">
         <h1 className="font-display text-2xl tracking-wide">Collections</h1>
         <button onClick={openCreate}
-          className="border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest px-5 py-2.5 hover:bg-[#b8963e] transition-colors">
+          className="border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest px-5 py-2.5 hover:bg-[#EE4740] transition-colors">
           + New Collection
         </button>
       </div>
       <p className="font-mono text-xs text-[#8A7560] mb-8">Curate product groups — these appear as browseable collections in your storefront.</p>
 
       {status && (
-        <div className="mb-6 font-mono text-xs text-[#4A3728] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-4 py-3">{status}</div>
+        <div className="mb-6 font-mono text-xs text-[#4A3728] bg-[#EE4740]/10 border border-[#EE4740]/30 px-4 py-3">{status}</div>
       )}
 
       {loading && <p className="font-mono text-xs text-[#8A7560]">Loading…</p>}
@@ -130,7 +130,7 @@ export default function CollectionsPage() {
       {!loading && collections.length === 0 && !creating && (
         <div className="bg-white border border-[#D8D0C0] px-6 py-10 text-center">
           <p className="font-mono text-xs text-[#8A7560]">No collections yet.</p>
-          <button onClick={openCreate} className="mt-4 font-mono text-xs text-[#C9A84C] hover:underline">+ Create your first collection</button>
+          <button onClick={openCreate} className="mt-4 font-mono text-xs text-[#EE4740] hover:underline">+ Create your first collection</button>
         </div>
       )}
 
@@ -159,7 +159,7 @@ export default function CollectionsPage() {
                 Edit
               </button>
               <a href={`/shop/collections/${col.slug}`} target="_blank"
-                className="font-mono text-xs px-3 py-1.5 border border-[#D8D0C0] text-[#C9A84C] hover:bg-[#F7F5F0] transition-colors">
+                className="font-mono text-xs px-3 py-1.5 border border-[#D8D0C0] text-[#EE4740] hover:bg-[#F7F5F0] transition-colors">
                 View ↗
               </a>
               <button onClick={() => handleDelete(col)}
@@ -181,14 +181,14 @@ export default function CollectionsPage() {
             <label className="block mb-4">
               <span className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest block mb-1.5">Name *</span>
               <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Summer Essentials" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]" />
+                placeholder="Summer Essentials" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]" />
             </label>
 
             <label className="block mb-4">
               <span className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest block mb-1.5">Description</span>
               <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Optional tagline…" rows={2}
-                className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C] resize-none" />
+                className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740] resize-none" />
             </label>
 
             <div className="block mb-6">
@@ -196,7 +196,7 @@ export default function CollectionsPage() {
               <div className="flex gap-2">
                 <input value={form.coverImage} onChange={(e) => setForm((f) => ({ ...f, coverImage: e.target.value }))}
                   placeholder="https://cdn.shopify.com/…"
-                  className="flex-1 border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]" />
+                  className="flex-1 border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]" />
                 <button type="button" onClick={openImagePicker}
                   className="shrink-0 border border-[#D8D0C0] font-mono text-xs px-3 py-2 text-[#6B5D4E] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap">
                   Pick from catalog
@@ -206,7 +206,7 @@ export default function CollectionsPage() {
             </div>
 
             <div className="flex gap-3">
-              <button type="submit" className="flex-1 border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#b8963e] transition-colors">
+              <button type="submit" className="flex-1 border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#EE4740] transition-colors">
                 {editing ? "Save Changes" : "Create Collection"}
               </button>
               <button type="button" onClick={() => setCreating(false)}
@@ -233,7 +233,7 @@ export default function CollectionsPage() {
                 value={imagePickerSearch}
                 onChange={(e) => setImagePickerSearch(e.target.value)}
                 placeholder="Search products…"
-                className="w-full border border-[#E4E7EC] rounded-md px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]"
+                className="w-full border border-[#E4E7EC] rounded-md px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]"
               />
             </div>
             <div className="overflow-y-auto flex-1 p-4">
@@ -244,7 +244,7 @@ export default function CollectionsPage() {
                   .map(({ url, title }) => (
                     <button key={url} type="button"
                       onClick={() => { setForm((f) => ({ ...f, coverImage: url })); setImagePicker(false); }}
-                      className="group relative aspect-square overflow-hidden rounded-md border border-[#E4E7EC] hover:border-[#C9A84C] transition-all focus:outline-none focus:ring-2 focus:ring-[#C9A84C]">
+                      className="group relative aspect-square overflow-hidden rounded-md border border-[#E4E7EC] hover:border-[#EE4740] transition-all focus:outline-none focus:ring-2 focus:ring-[#EE4740]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end">
@@ -274,7 +274,7 @@ export default function CollectionsPage() {
               <input
                 value={pickerSearch} onChange={(e) => setPickerSearch(e.target.value)}
                 placeholder="Search by title or type…"
-                className="mt-3 w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]"
+                className="mt-3 w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]"
               />
             </div>
 
@@ -283,7 +283,7 @@ export default function CollectionsPage() {
                 const checked = pickerSelected.has(p.id);
                 return (
                   <label key={p.id} className="flex items-center gap-3 px-6 py-2.5 cursor-pointer hover:bg-[#F7F5F0] transition-colors border-b border-[#F0EBE3]">
-                    <input type="checkbox" checked={checked} className="accent-[#C9A84C]"
+                    <input type="checkbox" checked={checked} className="accent-[#EE4740]"
                       onChange={() => setPickerSelected((prev) => { const next = new Set(prev); checked ? next.delete(p.id) : next.add(p.id); return next; })} />
                     {p.image_urls[0] && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -300,7 +300,7 @@ export default function CollectionsPage() {
 
             <div className="px-6 py-4 border-t border-[#D8D0C0] bg-white flex items-center gap-3">
               <button onClick={savePicker}
-                className="flex-1 border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#b8963e] transition-colors">
+                className="flex-1 border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#EE4740] transition-colors">
                 Save {pickerSelected.size} Products
               </button>
               <button onClick={() => setPickerOpen(false)}

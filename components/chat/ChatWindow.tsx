@@ -14,6 +14,7 @@ interface Props {
   agentName?: string;
   welcomeMessage?: string;
   brandName?: string;
+  catalogContext?: string;
 }
 
 function generateSuggestions(text: string, hasProducts: boolean): string[] {
@@ -39,9 +40,10 @@ function generateSuggestions(text: string, hasProducts: boolean): string[] {
 
 export function ChatWindow({
   initialQuery,
-  agentName = "Aria",
+  agentName = "Leo",
   welcomeMessage,
-  brandName = "Ionio",
+  brandName = "The Bear House",
+  catalogContext,
 }: Props) {
   const resolvedWelcome = welcomeMessage || `Hi! I'm ${agentName}, your personal AI stylist. Tell me what you're looking for — an occasion, a budget, a vibe — and I'll find the perfect pieces for you. Or pick one of the prompts below to get started.`;
 
@@ -187,6 +189,7 @@ export function ChatWindow({
 
     try {
       const body: Record<string, unknown> = { messages: history };
+      if (catalogContext) body.catalogContext = catalogContext;
       if (imageBase64) {
         body.imageBase64 = imageBase64;
         body.imageQuery = text || "Find products similar to this image";

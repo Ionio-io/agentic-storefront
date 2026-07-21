@@ -25,6 +25,7 @@ interface RichContext {
   isGiftMode?: boolean;
   giftContext?: string;
   productContext?: string;
+  catalogContext?: string;
 }
 
 // ─── System prompt builder ─────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ function buildSystemPrompt(
   cfg: Awaited<ReturnType<typeof getBrandConfig>>,
   ctx: RichContext
 ): string {
-  const { userPrefs, styleMemory, behaviorContext, wishlistIds, isGiftMode, giftContext, productContext } = ctx;
+  const { userPrefs, styleMemory, behaviorContext, wishlistIds, isGiftMode, giftContext, productContext, catalogContext } = ctx;
 
   // User profile from DB (logged-in users)
   const prefLines = userPrefs
@@ -65,7 +66,7 @@ ${cfg.agentPersona}
 
 BRAND:
 ${cfg.brandDescription}
-${contextBlock ? `\n--- SHOPPER CONTEXT ---\n${contextBlock}\n--- END CONTEXT ---\n` : ""}${productContext ? `\n--- ACTIVE PRODUCT PAGE ---\n${productContext}\n--- END PRODUCT ---\n\n` : ""}
+${catalogContext ? `\n--- STORE CATALOG ---\n${catalogContext}\n--- END CATALOG ---\n` : ""}${contextBlock ? `\n--- SHOPPER CONTEXT ---\n${contextBlock}\n--- END CONTEXT ---\n` : ""}${productContext ? `\n--- ACTIVE PRODUCT PAGE ---\n${productContext}\n--- END PRODUCT ---\n\n` : ""}
 TOOL SELECTION — call tools in this priority order:
 1. search_products — any request for clothing, outfits, or styles. Always include gender, max_price, occasion, and product_type when the shopper mentions them.
 2. build_outfit — shopper wants "a complete look", "what goes with this", or outfit ideas around a specific piece.
@@ -101,11 +102,12 @@ function detectGiftMode(messages: Array<{ role: string; content: string }>): { i
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { messages, imageBase64, imageQuery, productContext, styleMemory, behaviorContext, wishlistIds } = body as {
+  const { messages, imageBase64, imageQuery, productContext, catalogContext, styleMemory, behaviorContext, wishlistIds } = body as {
     messages: Array<{ role: string; content: string }>;
     imageBase64?: string;
     imageQuery?: string;
     productContext?: string;
+    catalogContext?: string;
     styleMemory?: string;
     behaviorContext?: string;
     wishlistIds?: string[];
@@ -172,6 +174,7 @@ export async function POST(req: NextRequest) {
     isGiftMode: isGift,
     giftContext,
     productContext,
+    catalogContext,
   });
 
   const encoder = new TextEncoder();

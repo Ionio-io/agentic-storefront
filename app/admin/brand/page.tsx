@@ -64,7 +64,7 @@ export default function BrandPage() {
           label="Primary Colour (hex)"
           value={form.primaryColor}
           onChange={(v) => set("primaryColor", v)}
-          hint="Used for UI accents. E.g. #C9A84C"
+          hint="Used for UI accents. E.g. #EE4740"
         />
 
         <div className="pt-2">
@@ -107,14 +107,14 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
-          className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#C9A84C] resize-y"
+          className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#EE4740] resize-y"
         />
       ) : (
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#C9A84C]"
+          className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#EE4740]"
         />
       )}
       {hint && (

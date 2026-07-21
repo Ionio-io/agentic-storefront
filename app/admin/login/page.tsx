@@ -66,9 +66,9 @@ function LoginContent() {
           --muted:   #7A7268;
           --body:    #3D3830;
           --dark:    #0D0B08;
-          --gold:    #B8963E;
-          --gold2:   #C9A84C;
-          --gold-bg: rgba(184,150,62,0.06);
+          --gold:    #EE4740;
+          --gold2:   #DC2626;
+          --gold-bg: rgba(238,71,64,0.06);
           --red:     #C04040;
         }
 
@@ -99,7 +99,7 @@ function LoginContent() {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: radial-gradient(circle, rgba(184,150,62,0.10) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(238,71,64,0.10) 1px, transparent 1px);
           background-size: 44px 44px;
           pointer-events: none;
           opacity: 0.5;
@@ -110,7 +110,7 @@ function LoginContent() {
           position: absolute;
           top: 15%; bottom: 15%; right: 0;
           width: 1px;
-          background: linear-gradient(180deg, transparent, rgba(184,150,62,0.18) 30%, rgba(184,150,62,0.18) 70%, transparent);
+          background: linear-gradient(180deg, transparent, rgba(238,71,64,0.18) 30%, rgba(238,71,64,0.18) 70%, transparent);
           pointer-events: none;
         }
 
@@ -173,7 +173,7 @@ function LoginContent() {
         }
 
         .cipher-inner {
-          fill: none; stroke: rgba(184,150,62,0.22);
+          fill: none; stroke: rgba(238,71,64,0.22);
           stroke-width: 0.4;
           stroke-dasharray: 420; stroke-dashoffset: 420;
         }
@@ -182,7 +182,7 @@ function LoginContent() {
         }
 
         .cipher-cross {
-          stroke: rgba(184,150,62,0.15); stroke-width: 0.4;
+          stroke: rgba(238,71,64,0.15); stroke-width: 0.4;
           stroke-dasharray: 200; stroke-dashoffset: 200;
         }
         .cipher-wrap.phase1 .cipher-cross {
@@ -195,7 +195,7 @@ function LoginContent() {
         }
 
         .cipher-arc {
-          fill: none; stroke: rgba(184,150,62,0.4);
+          fill: none; stroke: rgba(238,71,64,0.4);
           stroke-width: 0.6;
           stroke-dasharray: 30; stroke-dashoffset: 30;
         }
@@ -261,7 +261,7 @@ function LoginContent() {
         .lr-right::before {
           content: '';
           position: absolute; inset: 0;
-          background: radial-gradient(ellipse at 30% 40%, rgba(184,150,62,0.04) 0%, transparent 65%);
+          background: radial-gradient(ellipse at 30% 40%, rgba(238,71,64,0.04) 0%, transparent 65%);
           pointer-events: none;
         }
 
@@ -316,7 +316,7 @@ function LoginContent() {
         .fld-box:focus-within {
           border-color: var(--gold);
           background: var(--bg);
-          box-shadow: 0 0 0 3px rgba(184,150,62,0.08);
+          box-shadow: 0 0 0 3px rgba(238,71,64,0.08);
         }
 
         .fld-box::before, .fld-box::after {
@@ -427,12 +427,12 @@ function LoginContent() {
         <div className="lr-left">
           <div className="lr-corner">
             <svg className="corner-svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <path d="M28 1H1V28" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+              <path d="M28 1H1V28" stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
           <div className="lr-corner lr-corner-br">
             <svg className="corner-svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <path d="M28 1H1V28" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+              <path d="M28 1H1V28" stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
 
@@ -455,21 +455,21 @@ function LoginContent() {
                 className="cipher-w"
                 x="100" y="115"
                 textAnchor="middle"
-                fontFamily="Playfair Display, serif"
-                fontSize="52"
-                fontStyle="italic"
-                fontWeight="400"
-                fill="rgba(184,150,62,0.7)"
-              >W</text>
-              <line x1="100" y1="5"   x2="100" y2="12"  stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
-              <line x1="195" y1="100" x2="188" y2="100" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
-              <line x1="100" y1="195" x2="100" y2="188" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
-              <line x1="5"   y1="100" x2="12"  y2="100" stroke="rgba(184,150,62,0.35)" strokeWidth="0.75"/>
+                fontFamily="Arial Black, sans-serif"
+                fontSize="46"
+                fontStyle="normal"
+                fontWeight="800"
+                fill="rgba(238,71,64,0.7)"
+              >B</text>
+              <line x1="100" y1="5"   x2="100" y2="12"  stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
+              <line x1="195" y1="100" x2="188" y2="100" stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
+              <line x1="100" y1="195" x2="100" y2="188" stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
+              <line x1="5"   y1="100" x2="12"  y2="100" stroke="rgba(238,71,64,0.35)" strokeWidth="0.75"/>
             </svg>
           </div>
 
           <div className={`left-text ${phase >= 2 ? "phase2" : ""}`}>
-            <span className="left-wordmark">Ionio AI</span>
+            <span className="left-wordmark">The Bear House</span>
             <h1 className="left-headline">
               The intelligence<br />
               <strong>behind the storefront.</strong>
@@ -572,7 +572,7 @@ function LoginContent() {
 
             <div className="fw-footer">
               <p className="fw-hint">
-                Default: admin / ionio2024 &nbsp;·&nbsp; Override via env vars.
+                Default: admin / bearhouse2024 &nbsp;·&nbsp; Override via env vars.
               </p>
               <a href="/" className="fw-back">← Back to storefront</a>
             </div>

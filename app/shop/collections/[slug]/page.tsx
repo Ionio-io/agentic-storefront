@@ -30,7 +30,7 @@ function ProductCard({ product }: { product: Product }) {
             className="absolute inset-0 w-full h-full object-cover object-top opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         )}
         {product.is_new && (
-          <div className="absolute top-0 left-0 bg-[#C9A84C] text-white font-mono text-[9px] tracking-widest px-2 py-1 uppercase">New</div>
+          <div className="absolute top-0 left-0 bg-[#EE4740] text-white font-mono text-[9px] tracking-widest px-2 py-1 uppercase">New</div>
         )}
         <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <div className="bg-dark text-cream font-sans text-[11px] tracking-[0.1em] uppercase text-center py-2.5">View Product</div>

@@ -7,9 +7,10 @@ import { useWishlistCount } from "@/components/storefront/WishlistButton";
 import { useBrand } from "@/lib/brand-context";
 
 const NAV_LINKS = [
-  { label: "Women", href: "/shop?gender=female" },
-  { label: "Men", href: "/shop?gender=male" },
-  { label: "New Arrivals", href: "/shop?isNew=true" },
+  { label: "Shirts", href: "/shop?gender=male&category=Shirts" },
+  { label: "Polos", href: "/shop?gender=male&category=Polo" },
+  { label: "Bottoms", href: "/shop?gender=male&category=Jeans" },
+  { label: "New Arrivals", href: "/shop?gender=male&isNew=true" },
   { label: "Collections", href: "/shop/collections" },
 ];
 
@@ -149,7 +150,7 @@ export function StorefrontHeader() {
               Type anything — our AI stylist will find exactly what you need.
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
-              {["Party dresses for women", "Men's formal shirts", "Ethnic kurta for Diwali", "Casual tees under ₹1000"].map((s) => (
+              {["Sharp office shirts", "Polo under ₹1500", "Check shirts for the weekend", "Casual tees under ₹1000"].map((s) => (
                 <button
                   key={s}
                   onClick={() => { router.push(`/chat?q=${encodeURIComponent(s)}`); setSearchOpen(false); }}

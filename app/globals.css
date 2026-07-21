@@ -6,12 +6,12 @@
   * { box-sizing: border-box; }
 
   :root {
-    --gold: #C9A84C;
-    --dark: #0D0B08;
-    --cream: #FAFAF5;
-    --ivory: #F4EFE6;
-    --taupe: #7A6E60;
-    --border: #E5DDD3;
+    --gold: #EE4740;
+    --dark: #1A1A1A;
+    --cream: #FFFFFF;
+    --ivory: #F5F5F5;
+    --taupe: #6B6B6B;
+    --border: #E8E8E8;
   }
 
   html { scroll-behavior: smooth; }
@@ -39,8 +39,8 @@
 
   /* Custom selection */
   ::selection {
-    background-color: #C9A84C;
-    color: #0D0B08;
+    background-color: #EE4740;
+    color: #FFFFFF;
   }
 }
 
@@ -51,7 +51,7 @@
   /* Thin scrollbar for chat */
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #E5DDD3; border-radius: 2px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #E8E8E8; border-radius: 2px; }
 
   /* Gold underline sweep animation */
   .underline-sweep {

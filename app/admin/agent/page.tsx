@@ -83,7 +83,7 @@ RESPONSE RULES:
             value={form.agentName}
             onChange={(e) => set("agentName", e.target.value)}
             placeholder="e.g. Aria, Zara, Mia"
-            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#C9A84C]"
+            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#EE4740]"
           />
         </div>
 
@@ -96,7 +96,7 @@ RESPONSE RULES:
             onChange={(e) => set("agentPersona", e.target.value)}
             rows={4}
             placeholder="Describe the agent's personality, tone, and expertise…"
-            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#C9A84C] resize-y"
+            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#EE4740] resize-y"
           />
           <p className="font-mono text-xs text-[#8A7560] mt-1">
             This text is injected directly into the system prompt.
@@ -112,7 +112,7 @@ RESPONSE RULES:
             onChange={(e) => set("welcomeMessage", e.target.value)}
             rows={3}
             placeholder="The first message shown to shoppers when they open the chat…"
-            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#C9A84C] resize-y"
+            className="w-full border border-[#D8D0C0] bg-white px-4 py-3 font-sans text-sm text-[#1A1A1A] focus:outline-none focus:border-[#EE4740] resize-y"
           />
         </div>
 
@@ -121,7 +121,7 @@ RESPONSE RULES:
           <button
             type="button"
             onClick={() => setShowPrompt((v) => !v)}
-            className="font-mono text-xs text-[#C9A84C] hover:underline"
+            className="font-mono text-xs text-[#EE4740] hover:underline"
           >
             {showPrompt ? "Hide" : "Show"} system prompt preview →
           </button>

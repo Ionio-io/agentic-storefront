@@ -11,28 +11,28 @@ import { useBrand } from "@/lib/brand-context";
 
 const CATEGORIES = [
   {
-    label: "Women's Ethnic",
-    sub: "Kurtas, Suits & Sets",
-    href: "/shop?gender=female&category=Ethnic+Suits",
-    image: "https://cdn.shopify.com/s/files/1/0266/6276/4597/files/301063880LILAC_1_c20748ad-57a2-4348-adef-fc96213cbad3.jpg?v=1779095828",
+    label: "Shirts",
+    sub: "Oxford, Check & Solid",
+    href: "/shop?gender=male&category=Shirts",
+    image: "https://cdn.shopify.com/s/files/1/0517/2939/9964/files/TBH-LIOS-GY_1.jpg?v=1769691305",
   },
   {
-    label: "Women's Western",
-    sub: "Tops, Dresses & Denim",
-    href: "/shop?gender=female&category=Dresses",
-    image: "https://cdn.shopify.com/s/files/1/0266/6276/4597/files/301064134LTMIDWASH_1.jpg?v=1778833305",
+    label: "Polos",
+    sub: "Classic & Knitted",
+    href: "/shop?gender=male&category=Polo",
+    image: "https://cdn.shopify.com/s/files/1/0517/2939/9964/files/POL-TIKO-BL_1.jpg?v=1770986924",
   },
   {
-    label: "Men's Formals",
-    sub: "Shirts, Trousers & More",
-    href: "/shop?gender=male&q=formal+shirts+trousers+men",
-    image: "https://cdn.shopify.com/s/files/1/0266/6276/4597/files/301056651NAVY_1_1.jpg?v=1778870576",
+    label: "Bottoms",
+    sub: "Jeans, Trousers & Cargo",
+    href: "/shop?gender=male&category=Jeans",
+    image: "https://cdn.shopify.com/s/files/1/0517/2939/9964/files/TBH-KEROS-BK_1.jpg?v=1757336095",
   },
   {
-    label: "Loungewear",
-    sub: "Comfortable Everyday",
-    href: "/shop?category=Loungewear",
-    image: "https://cdn.shopify.com/s/files/1/0266/6276/4597/files/301062229BLACK_1.jpg?v=1778769578",
+    label: "New Arrivals",
+    sub: "Fresh Drops",
+    href: "/shop?gender=male&isNew=true",
+    image: "https://cdn.shopify.com/s/files/1/0517/2939/9964/files/ONL-FRUVA-TL-M_2.jpg?v=1784532623",
   },
 ];
 
@@ -40,11 +40,11 @@ const DEMO_HERO = [DEMO_PRODUCTS[0], DEMO_PRODUCTS[1], DEMO_PRODUCTS[3]];
 const DEMO_FEATURED = DEMO_PRODUCTS.slice(0, 8);
 
 const PROMPT_CHIPS = [
-  "Ethnic kurta for women under ₹1500",
-  "Office formal for men",
-  "Party dress under ₹2000",
-  "Casual summer tops for women",
-  "Complete outfit for a wedding",
+  "Sharp office shirts under ₹1500",
+  "Smart casual look for the weekend",
+  "Check shirt for casual outings",
+  "Slim fit polo under ₹1500",
+  "Complete night-out fit",
 ];
 
 export default function HomePage() {
@@ -158,7 +158,7 @@ export default function HomePage() {
           transition: border-color 0.25s;
         }
         .ai-search-box:focus-within {
-          border-color: #C9A84C;
+          border-color: #EE4740;
           box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
           animation: none;
           transition: none;
@@ -190,7 +190,7 @@ export default function HomePage() {
                 itself.
               </h1>
               <p className="hero-text-3 font-sans text-sm text-taupe leading-relaxed max-w-xs mt-4 mb-6">
-                Discover the latest from {brand.name} — ethnic sets, western wear, and everything in between.
+                Discover the latest from {brand.name} — shirts, polos, jeans, and everything in between.
               </p>
 
               {/* AI Search input */}
@@ -376,7 +376,7 @@ export default function HomePage() {
             <div>
               <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Shop</p>
               <ul className="space-y-2">
-                {["Women", "Men", "Ethnic Wear", "New Arrivals"].map((l) => (
+                {["Shirts", "Polos", "Jeans & Trousers", "New Arrivals"].map((l) => (
                   <li key={l}><Link href="/shop" className="font-sans text-xs text-taupe hover:text-dark transition-colors">{l}</Link></li>
                 ))}
               </ul>

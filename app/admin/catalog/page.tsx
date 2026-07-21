@@ -219,12 +219,12 @@ export default function CatalogPage() {
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total Products", value: catalog.total },
-            { label: "Women", value: catalog.womenTotal ?? catalog.products.filter((p) => p.gender === "female").length },
-            { label: "Men", value: catalog.menTotal ?? catalog.products.filter((p) => p.gender === "male").length },
+            { label: "Shirts & Polos", value: catalog.products.filter((p) => ["Shirts","Polo"].includes(p.product_type)).length },
+            { label: "Bottoms", value: catalog.products.filter((p) => ["Jeans","Trousers","Cargo","Shorts"].includes(p.product_type)).length },
             { label: "New Arrivals", value: newCount, highlight: newCount > 0 },
           ].map((s) => (
-            <div key={s.label} className={`bg-white border px-5 py-4 ${s.highlight ? "border-[#C9A84C]" : "border-[#E4E7EC]"}`}>
-              <p className={`font-sans text-2xl font-bold tracking-tight ${s.highlight ? "text-[#C9A84C]" : "text-[#111827]"}`}>{s.value ?? "—"}</p>
+            <div key={s.label} className={`bg-white border px-5 py-4 ${s.highlight ? "border-[#EE4740]" : "border-[#E4E7EC]"}`}>
+              <p className={`font-sans text-2xl font-bold tracking-tight ${s.highlight ? "text-[#EE4740]" : "text-[#111827]"}`}>{s.value ?? "—"}</p>
               <p className="font-mono text-xs text-[#6B7280] mt-0.5">{s.label}</p>
             </div>
           ))}
@@ -258,12 +258,12 @@ export default function CatalogPage() {
             onChange={(e) => { setImportUrl(e.target.value); setPreviewGroups(null); setImportStatus(null); }}
             placeholder="https://store.myshopify.com"
             disabled={scanning || importing}
-            className="flex-1 min-w-[260px] border border-[#D8D0C0] font-mono text-xs px-3 py-2.5 focus:outline-none focus:border-[#C9A84C] disabled:opacity-50"
+            className="flex-1 min-w-[260px] border border-[#D8D0C0] font-mono text-xs px-3 py-2.5 focus:outline-none focus:border-[#EE4740] disabled:opacity-50"
           />
           <button
             onClick={handleScan}
             disabled={scanning || importing || !importUrl.trim()}
-            className="border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest px-6 py-2.5 hover:bg-[#b8963e] transition-colors disabled:opacity-40"
+            className="border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest px-6 py-2.5 hover:bg-[#EE4740] transition-colors disabled:opacity-40"
           >
             {scanning && !previewGroups ? "Scanning…" : "Scan & Preview"}
           </button>
@@ -277,7 +277,7 @@ export default function CatalogPage() {
       <div className="flex gap-0 mb-4 border-b border-[#D8D0C0]">
         {([["catalog", "All Products"], ["deadstock", "Dead Stock"]] as const).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`font-mono text-xs tracking-widest px-5 py-2.5 border-b-2 transition-colors ${tab === t ? "border-[#C9A84C] text-[#4A3728]" : "border-transparent text-[#8A7560] hover:text-[#4A3728]"}`}>
+            className={`font-mono text-xs tracking-widest px-5 py-2.5 border-b-2 transition-colors ${tab === t ? "border-[#EE4740] text-[#4A3728]" : "border-transparent text-[#8A7560] hover:text-[#4A3728]"}`}>
             {label}
           </button>
         ))}
@@ -285,10 +285,10 @@ export default function CatalogPage() {
 
       {/* Bulk action bar */}
       {tab === "catalog" && selectedIds.size > 0 && (
-        <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-5 py-3 mb-4 flex items-center gap-3 flex-wrap">
+        <div className="bg-[#EE4740]/10 border border-[#EE4740]/30 px-5 py-3 mb-4 flex items-center gap-3 flex-wrap">
           <span className="font-mono text-xs text-[#4A3728]">{selectedIds.size} selected</span>
           <button onClick={() => bulkUpdate({ is_featured: true }, "Marking featured")}
-            className="font-mono text-xs px-3 py-1.5 border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-white transition-colors">★ Mark Featured</button>
+            className="font-mono text-xs px-3 py-1.5 border border-[#EE4740] text-[#EE4740] hover:bg-[#EE4740] hover:text-white transition-colors">★ Mark Featured</button>
           <button onClick={() => bulkUpdate({ is_featured: false }, "Removing featured")}
             className="font-mono text-xs px-3 py-1.5 border border-[#D8D0C0] text-[#6B5D4E] hover:bg-[#F7F5F0] transition-colors">☆ Remove Featured</button>
           <button onClick={handleClearNew}
@@ -306,10 +306,9 @@ export default function CatalogPage() {
           {/* Filters + controls row */}
           <div className="flex items-center gap-4 mb-4 flex-wrap">
             <select value={gender} onChange={(e) => { setGender(e.target.value); setPage(1); setSelectedIds(new Set()); }}
-              className="border border-[#D8D0C0] bg-white px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]">
-              <option value="all">All genders</option>
-              <option value="female">Women</option>
-              <option value="male">Men</option>
+              className="border border-[#D8D0C0] bg-white px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]">
+              <option value="all">All Products</option>
+              <option value="male">Men&apos;s</option>
             </select>
             <span className="font-mono text-xs text-[#8A7560]">
               {catalog ? `${catalog.total} products · page ${catalog.page} of ${catalog.pages}` : "Loading…"}
@@ -324,7 +323,7 @@ export default function CatalogPage() {
               <thead>
                 <tr className="border-b border-[#D8D0C0] bg-[#F7F5F0]">
                   <th className="px-4 py-3">
-                    <input type="checkbox" checked={allPageSelected} onChange={toggleSelectAll} className="accent-[#C9A84C]" />
+                    <input type="checkbox" checked={allPageSelected} onChange={toggleSelectAll} className="accent-[#EE4740]" />
                   </th>
                   {["Image", "Title", "Category", "Gender", "Price", "Sizes", "VTON", "Flags"].map((h) => (
                     <th key={h} className="px-4 py-3 font-sans text-xs font-semibold text-[#374151] uppercase tracking-widest text-left">{h}</th>
@@ -339,7 +338,7 @@ export default function CatalogPage() {
                   return (
                     <tr key={p.id} className={`border-b border-[#F0EBE3] hover:bg-[#FAFAF7] ${isSelected ? "bg-[#FFFDF5]" : ""}`}>
                       <td className="px-4 py-2">
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(p.id)} className="accent-[#C9A84C]" />
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(p.id)} className="accent-[#EE4740]" />
                       </td>
                       <td className="px-4 py-2">
                         <div className="relative w-10 h-12">
@@ -348,7 +347,7 @@ export default function CatalogPage() {
                             ? <img src={p.image_urls[0]} alt={p.title} className="w-full h-full object-cover" />
                             : <div className="w-full h-full bg-[#F0EBE3]" />}
                           {p.is_new && (
-                            <span className="absolute -top-1 -left-1 bg-[#C9A84C] text-white font-mono text-[7px] px-1 py-0.5 leading-none">NEW</span>
+                            <span className="absolute -top-1 -left-1 bg-[#EE4740] text-white font-mono text-[7px] px-1 py-0.5 leading-none">NEW</span>
                           )}
                         </div>
                       </td>
@@ -368,29 +367,29 @@ export default function CatalogPage() {
                               onChange={(e) => setEditingPrice({ id: p.id, value: e.target.value })}
                               onBlur={() => savePriceOverride(p.id, editingPrice!.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") savePriceOverride(p.id, editingPrice!.value); if (e.key === "Escape") setEditingPrice(null); }}
-                              className="w-20 border border-[#C9A84C] px-1.5 py-0.5 text-xs font-mono focus:outline-none"
+                              className="w-20 border border-[#EE4740] px-1.5 py-0.5 text-xs font-mono focus:outline-none"
                             />
                           </div>
                         ) : (
                           <button onClick={() => setEditingPrice({ id: p.id, value: String(displayPrice) })}
-                            className="hover:text-[#C9A84C] transition-colors group flex items-center gap-1">
+                            className="hover:text-[#EE4740] transition-colors group flex items-center gap-1">
                             ₹{displayPrice}
-                            {p.price_override && <span className="text-[#C9A84C] text-[9px]">✎</span>}
+                            {p.price_override && <span className="text-[#EE4740] text-[9px]">✎</span>}
                             <span className="text-[10px] opacity-0 group-hover:opacity-50">✎</span>
                           </button>
                         )}
                       </td>
                       <td className="px-4 py-2 font-mono text-xs">{(p.available_sizes ?? p.sizes).join(", ")}</td>
-                      <td className="px-4 py-2 font-mono text-xs text-[#C9A84C]">{p.vton_category}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-[#EE4740]">{p.vton_category}</td>
                       <td className="px-4 py-2">
                         <div className="flex gap-1 items-center">
-                          {p.is_featured && <span className="text-[#C9A84C] text-sm" title="Featured">★</span>}
-                          {p.is_new && <span className="font-mono text-[9px] bg-[#C9A84C] text-white px-1 py-0.5">NEW</span>}
+                          {p.is_featured && <span className="text-[#EE4740] text-sm" title="Featured">★</span>}
+                          {p.is_new && <span className="font-mono text-[9px] bg-[#EE4740] text-white px-1 py-0.5">NEW</span>}
                           <button onClick={() => fetch("/api/catalog/bulk", {
                             method: "PATCH", headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ ids: [p.id], update: { is_featured: !p.is_featured } }),
                           }).then(() => fetchCatalog())}
-                            className="text-xs text-[#B0A090] hover:text-[#C9A84C] transition-colors ml-1" title={p.is_featured ? "Remove featured" : "Mark featured"}>
+                            className="text-xs text-[#B0A090] hover:text-[#EE4740] transition-colors ml-1" title={p.is_featured ? "Remove featured" : "Mark featured"}>
                             {p.is_featured ? "☆" : "★"}
                           </button>
                         </div>
@@ -491,7 +490,7 @@ export default function CatalogPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex gap-3">
-                  <button onClick={() => selectAllTypes(true)} className="font-mono text-xs text-[#C9A84C] hover:underline font-semibold">Select all</button>
+                  <button onClick={() => selectAllTypes(true)} className="font-mono text-xs text-[#EE4740] hover:underline font-semibold">Select all</button>
                   <button onClick={() => selectAllTypes(false)} className="font-mono text-xs text-[#9CA3AF] hover:text-[#374151] hover:underline">None</button>
                 </div>
                 <span className="font-sans text-xs font-semibold text-[#111827]">
@@ -500,7 +499,7 @@ export default function CatalogPage() {
               </div>
 
               <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                <input type="checkbox" checked={clearExisting} onChange={(e) => setClearExisting(e.target.checked)} className="accent-[#C9A84C]" />
+                <input type="checkbox" checked={clearExisting} onChange={(e) => setClearExisting(e.target.checked)} className="accent-[#EE4740]" />
                 <span className="font-mono text-xs text-[#6B7280]">Replace existing catalog on import</span>
               </label>
             </div>
@@ -519,7 +518,7 @@ export default function CatalogPage() {
                         type="checkbox" checked={allSel}
                         ref={(el) => { if (el) el.indeterminate = someSel; }}
                         onChange={() => toggleMain(group)}
-                        className="accent-[#C9A84C] shrink-0"
+                        className="accent-[#EE4740] shrink-0"
                       />
                       <button onClick={() => toggleExpand(group.main)} className="flex-1 flex items-center gap-2 text-left">
                         <span className="font-sans text-sm font-semibold text-[#111827]">{group.main}</span>
@@ -536,7 +535,7 @@ export default function CatalogPage() {
                           <label key={t.name}
                             className="flex items-center gap-3 pl-11 pr-5 py-2 cursor-pointer hover:bg-[#F3F4F6] transition-colors border-t border-[#F3F4F6]">
                             <input type="checkbox" checked={selectedTypes.has(t.name)} onChange={() => toggleType(t.name)}
-                              className="accent-[#C9A84C] shrink-0" />
+                              className="accent-[#EE4740] shrink-0" />
                             <div className="flex-1 min-w-0">
                               <span className="font-sans text-xs text-[#374151]">{t.name}</span>
                               {t.sub !== t.name && (

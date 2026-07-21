@@ -89,14 +89,14 @@ export default function SyncPage() {
       <div className="flex items-start justify-between mb-1">
         <h1 className="font-display text-2xl tracking-wide">Sync Stores</h1>
         <button onClick={() => setAdding(true)}
-          className="border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest px-5 py-2.5 hover:bg-[#b8963e] transition-colors">
+          className="border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest px-5 py-2.5 hover:bg-[#EE4740] transition-colors">
           + Add Store
         </button>
       </div>
       <p className="font-mono text-xs text-[#8A7560] mb-8">Connect Shopify stores and configure auto-sync schedules.</p>
 
       {status && (
-        <div className="mb-6 font-mono text-xs text-[#4A3728] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-4 py-3">
+        <div className="mb-6 font-mono text-xs text-[#4A3728] bg-[#EE4740]/10 border border-[#EE4740]/30 px-4 py-3">
           {status}
         </div>
       )}
@@ -107,7 +107,7 @@ export default function SyncPage() {
         <div className="bg-white border border-[#D8D0C0] px-6 py-10 text-center">
           <p className="font-mono text-xs text-[#8A7560]">No stores connected yet.</p>
           <button onClick={() => setAdding(true)}
-            className="mt-4 font-mono text-xs text-[#C9A84C] hover:underline">+ Connect your first store</button>
+            className="mt-4 font-mono text-xs text-[#EE4740] hover:underline">+ Connect your first store</button>
         </div>
       )}
 
@@ -134,7 +134,7 @@ export default function SyncPage() {
 
             <div className="flex items-center gap-2 flex-wrap shrink-0">
               <select value={store.schedule} onChange={(e) => handleSchedule(store, e.target.value as SyncStore["schedule"])}
-                className="border border-[#D8D0C0] bg-white px-2 py-1.5 font-mono text-xs focus:outline-none focus:border-[#C9A84C]">
+                className="border border-[#D8D0C0] bg-white px-2 py-1.5 font-mono text-xs focus:outline-none focus:border-[#EE4740]">
                 <option value="manual">Manual</option>
                 <option value="6h">Every 6h</option>
                 <option value="12h">Every 12h</option>
@@ -142,7 +142,7 @@ export default function SyncPage() {
               </select>
 
               <button onClick={() => handleSync(store._id!, store.name)}
-                className="font-mono text-xs px-3 py-1.5 border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-white transition-colors">
+                className="font-mono text-xs px-3 py-1.5 border border-[#EE4740] text-[#EE4740] hover:bg-[#EE4740] hover:text-white transition-colors">
                 Sync Now
               </button>
 
@@ -170,19 +170,19 @@ export default function SyncPage() {
             <label className="block mb-4">
               <span className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest block mb-1.5">Store Name</span>
               <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="My Shopify Store" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]" />
+                placeholder="The Bear House" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]" />
             </label>
 
             <label className="block mb-4">
               <span className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest block mb-1.5">Store URL</span>
               <input required type="url" value={form.storeUrl} onChange={(e) => setForm((f) => ({ ...f, storeUrl: e.target.value }))}
-                placeholder="https://mystore.myshopify.com" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]" />
+                placeholder="https://thebearhouse.com" className="w-full border border-[#D8D0C0] px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]" />
             </label>
 
             <label className="block mb-6">
               <span className="font-mono text-xs text-[#6B5D4E] uppercase tracking-widest block mb-1.5">Auto-sync Schedule</span>
               <select value={form.schedule} onChange={(e) => setForm((f) => ({ ...f, schedule: e.target.value as SyncStore["schedule"] }))}
-                className="w-full border border-[#D8D0C0] bg-white px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#C9A84C]">
+                className="w-full border border-[#D8D0C0] bg-white px-3 py-2 font-mono text-xs focus:outline-none focus:border-[#EE4740]">
                 <option value="manual">Manual only</option>
                 <option value="6h">Every 6 hours</option>
                 <option value="12h">Every 12 hours</option>
@@ -191,7 +191,7 @@ export default function SyncPage() {
             </label>
 
             <div className="flex gap-3">
-              <button type="submit" className="flex-1 border border-[#C9A84C] bg-[#C9A84C] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#b8963e] transition-colors">
+              <button type="submit" className="flex-1 border border-[#EE4740] bg-[#EE4740] text-white font-mono text-xs tracking-widest py-2.5 hover:bg-[#EE4740] transition-colors">
                 Add Store
               </button>
               <button type="button" onClick={() => setAdding(false)}

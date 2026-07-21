@@ -16,7 +16,7 @@ interface Props {
   brandName?: string;
 }
 
-export function GiftFinder({ brandName = "Ionio" }: Props) {
+export function GiftFinder({ brandName = "The Bear House" }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [relation, setRelation] = useState<Relation | null>(null);

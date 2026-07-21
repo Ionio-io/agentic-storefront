@@ -93,7 +93,7 @@ function TrackedProductCard({
           />
         )}
         {product.is_new && (
-          <div className="absolute top-0 left-0 bg-[#C9A84C] text-white font-mono text-[9px] tracking-widest px-2 py-1 uppercase">
+          <div className="absolute top-0 left-0 bg-[#EE4740] text-white font-mono text-[9px] tracking-widest px-2 py-1 uppercase">
             New
           </div>
         )}
@@ -120,7 +120,7 @@ function ShopContent() {
 
   // Filter state
   const [gender, setGender] = useState<"" | "female" | "male">(
-    (params.get("gender") as "female" | "male") ?? ""
+    (params.get("gender") as "female" | "male") ?? "male"
   );
   const [category, setCategory] = useState(params.get("category") ?? "");
   const [priceRange, setPriceRange] = useState<number | null>(null);
@@ -158,31 +158,28 @@ function ShopContent() {
   // AI search bar — cycling placeholder + inline ghost autocomplete
   const AI_PLACEHOLDERS = [
     "Describe what you're looking for — occasion, mood, budget…",
-    "Try: festive kurta for Diwali under ₹2000",
-    "Try: smart casual look for men under ₹3000",
-    "Try: summer dresses for a beach trip",
-    "Try: ethnic wear for a wedding function",
-    "Try: office outfit for women in blue",
+    "Try: smart casual look under ₹2000",
+    "Try: office shirts in white or blue",
+    "Try: streetwear fit for the weekend",
+    "Try: check shirt under ₹1500",
+    "Try: going out outfit — sharp and clean",
   ];
   const AI_AUTOCOMPLETE = [
-    "Ethnic kurta for women under ₹1500",
-    "Ethnic suits for women",
-    "Ethnic wear for a wedding function",
-    "Summer dress for beach trip",
-    "Summer dresses for a beach trip",
-    "Office formals for women in blue",
-    "Office outfit for women in blue",
-    "Smart casual shirt for men",
-    "Smart casual look for men under ₹3000",
-    "Formal shirts under ₹2000",
+    "Smart casual look under ₹2000",
+    "Office shirt in white or blue",
+    "Check shirt under ₹1500",
+    "Slim fit polo in navy",
+    "Solid polo under ₹1500",
+    "Cargo pants for the weekend",
+    "Streetwear fit for the weekend",
+    "Night out outfit sharp and clean",
+    "Old money look under ₹3000",
     "Formal trousers under ₹2000",
     "Casual tees in blue",
-    "Casual tees in white or navy",
-    "Festive kurta for Diwali under ₹2000",
-    "Festive ethnic wear for Diwali",
-    "Wedding guest outfit under ₹3000",
-    "Loungewear for staying home",
-    "Loungewear",
+    "Casual tees in white or black",
+    "Flannel shirt for winter",
+    "Linen shirt for summer",
+    "Shacket for layering",
   ];
 
   const [phIdx, setPhIdx] = useState(0);
@@ -566,7 +563,7 @@ function ShopContent() {
           {/* AI quick suggestions */}
           {searchMode === "ai" && !aiResults && !aiLoading && (
             <div className="flex flex-wrap gap-2 mt-3.5">
-              {["Ethnic suits for women", "Formal shirts under ₹2000", "Casual tees in blue", "Loungewear"].map((s) => (
+              {["Sharp office shirts", "Polo under ₹1500", "Casual tees in white or navy", "Weekend fits"].map((s) => (
                 <button
                   key={s}
                   onClick={() => runQuickSearch(s)}
@@ -587,7 +584,7 @@ function ShopContent() {
           <div>
             <h1 className="font-display text-2xl font-400 text-dark">
               {isAiResultsActive ? "AI Search Results" : isVsActive ? "Visual Search Results" : (
-                gender === "female" ? "Women" : gender === "male" ? "Men" : "All Products"
+                gender === "male" ? "Men's" : "All Products"
               )}
               {!isAiResultsActive && !isVsActive && mainCat && ` · ${mainCat}`}
               {!isAiResultsActive && !isVsActive && category && ` · ${category}`}
@@ -660,12 +657,12 @@ function ShopContent() {
             <aside className="hidden lg:block w-52 flex-shrink-0">
               <div className="sticky top-24 space-y-7 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
                 <div>
-                  <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Gender</p>
+                  <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Category</p>
                   <div className="space-y-2">
-                    {(["", "female", "male"] as const).map((g) => (
+                    {(["", "male"] as const).map((g) => (
                       <button key={g} onClick={() => setGender(g)}
                         className={`block font-sans text-sm transition-colors ${gender === g ? "text-dark font-500" : "text-taupe hover:text-dark"}`}>
-                        {g === "" ? "All" : g === "female" ? "Women" : "Men"}
+                        {g === "" ? "All Men" : "Men's"}
                       </button>
                     ))}
                   </div>
@@ -847,12 +844,12 @@ function ShopContent() {
             </div>
             <div className="px-5 py-6 space-y-7">
               <div>
-                <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Gender</p>
+                <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-taupe mb-3">Category</p>
                 <div className="space-y-3">
-                  {(["", "female", "male"] as const).map((g) => (
+                  {(["", "male"] as const).map((g) => (
                     <button key={g} onClick={() => setGender(g)}
                       className={`block font-sans text-sm ${gender === g ? "text-dark font-500" : "text-taupe"}`}>
-                      {g === "" ? "All" : g === "female" ? "Women" : "Men"}
+                      {g === "" ? "All Men" : "Men's"}
                     </button>
                   ))}
                 </div>
@@ -920,7 +917,7 @@ function ShopContent() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={product.image_urls[0]} alt={product.title} className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
                     {product.is_new && (
-                      <div className="absolute top-0 left-0 bg-[#C9A84C] text-white font-mono text-[8px] tracking-widest px-1.5 py-0.5 uppercase">New</div>
+                      <div className="absolute top-0 left-0 bg-[#EE4740] text-white font-mono text-[8px] tracking-widest px-1.5 py-0.5 uppercase">New</div>
                     )}
                   </div>
                   <p className="font-sans text-xs text-dark line-clamp-2 leading-snug">{product.title}</p>

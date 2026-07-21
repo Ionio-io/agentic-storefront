@@ -546,7 +546,7 @@ function CompleteOutfit({ product, onOpenAI }: { product: Product; onOpenAI: () 
             <p className="font-sans text-xs text-taupe mb-3">Click "Style with AI" to see curated pieces that complement this item.</p>
             <button
               onClick={buildAiLook}
-              className="font-sans text-xs tracking-[0.1em] uppercase text-[#C9A84C] hover:underline"
+              className="font-sans text-xs tracking-[0.1em] uppercase text-[#EE4740] hover:underline"
             >
               Build My Outfit →
             </button>
@@ -785,7 +785,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white">
       <StorefrontHeader />
       <div className="flex items-center justify-center" style={{ height: "65vh" }}>
-        <div className="w-6 h-6 rounded-full border-2 border-t-transparent border-[#C9A84C] animate-spin" />
+        <div className="w-6 h-6 rounded-full border-2 border-t-transparent border-[#EE4740] animate-spin" />
       </div>
     </div>
   );
@@ -812,7 +812,7 @@ export default function ProductDetailPage() {
         transition: border-color 0.25s;
       }
       .ai-pdp-bar:focus-within {
-        border-color: #C9A84C;
+        border-color: #EE4740;
         box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
         animation: none;
         transition: none;
